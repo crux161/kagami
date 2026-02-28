@@ -1,6 +1,71 @@
+import { Button, LineEdit } from "std-widgets.slint";
+
 export component MainWindow inherits Window {
-    Text {
-        text: "hello world";
-        color: green;
+    in-out property <image> video_frame;
+    in-out property <string> current_bitrate: "0.00";
+    in-out property <string> loss_ratio: "0.00";
+    in-out property <string> jitter: "0.0";
+    in-out property <string> address: "127.0.0.1:4433";
+    callback connect_requested(string);
+
+    width: 960px;
+    height: 680px;
+    background: #0A1020;
+
+    VerticalLayout {
+        padding: 18px;
+        spacing: 18px;
+
+        viewport := Rectangle {
+            vertical-stretch: 1;
+            background: #040914;
+            border-radius: 20px;
+            border-width: 1px;
+            border-color: #22314D;
+
+            Image {
+                width: parent.width;
+                height: parent.height;
+                source: root.video_frame;
+            }
+
+            Rectangle {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: 44px;
+                background: #0C1426CC;
+                border-radius: 12px;
+                border-width: 1px;
+                border-color: #3D537A;
+
+                Text {
+                    x: 14px;
+                    y: 12px;
+                    text: "\{root.current_bitrate} Mbps | \{root.loss_ratio}% Loss | \{root.jitter}ms Jitter";
+                    color: #F4F7FF;
+                }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 12px;
+
+            LineEdit {
+                horizontal-stretch: 1;
+                placeholder-text: "Address";
+                text <=> root.address;
+                accepted => {
+                    root.connect_requested(root.address);
+                }
+            }
+
+            Button {
+                text: "Connect";
+                clicked => {
+                    root.connect_requested(root.address);
+                }
+            }
+        }
     }
 }
