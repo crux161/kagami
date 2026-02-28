@@ -1,49 +1,87 @@
-import { Button, LineEdit } from "std-widgets.slint";
+import { Button, ComboBox, Switch } from "std-widgets.slint";
 
 export component MainWindow inherits Window {
-    in-out property <image> video_frame;
-    in-out property <string> current_bitrate: "0.00";
-    in-out property <string> loss_ratio: "0.00";
-    in-out property <string> jitter: "0.0";
-    in-out property <string> address: "127.0.0.1:4433";
-    callback connect_requested(string);
+    in-out property <image> remote_video_frame;
+    in-out property <image> local_video_frame;
+    in-out property <string> tx_bitrate: "0.00";
+    in-out property <string> tx_loss: "0.00";
+    in-out property <string> rx_jitter: "0.0";
+    in-out property <string> rx_resolution: "Waiting";
+    in-out property <[string]> peers;
+    in-out property <int> selected_peer_index: -1;
+    in-out property <bool> audio_muted: false;
+    in-out property <bool> video_stopped: false;
 
-    width: 960px;
-    height: 680px;
-    background: #0A1020;
+    callback connect_requested();
+    callback audio_muted_toggled(bool);
+    callback video_stopped_toggled(bool);
+
+    width: 1160px;
+    height: 760px;
+    background: #07101D;
 
     VerticalLayout {
         padding: 18px;
         spacing: 18px;
 
-        viewport := Rectangle {
+        stage := Rectangle {
             vertical-stretch: 1;
-            background: #040914;
-            border-radius: 20px;
+            background: #030814;
+            border-radius: 22px;
             border-width: 1px;
-            border-color: #22314D;
+            border-color: #203654;
 
             Image {
                 width: parent.width;
                 height: parent.height;
-                source: root.video_frame;
+                source: root.remote_video_frame;
+                image-fit: contain;
             }
 
             Rectangle {
-                x: 16px;
-                y: 16px;
-                width: parent.width - 32px;
-                height: 44px;
-                background: #0C1426CC;
-                border-radius: 12px;
+                x: 18px;
+                y: 18px;
+                width: 360px;
+                height: 72px;
+                background: #0B162BCC;
+                border-radius: 14px;
                 border-width: 1px;
-                border-color: #3D537A;
+                border-color: #36527D;
 
-                Text {
-                    x: 14px;
-                    y: 12px;
-                    text: "\{root.current_bitrate} Mbps | \{root.loss_ratio}% Loss | \{root.jitter}ms Jitter";
-                    color: #F4F7FF;
+                VerticalLayout {
+                    padding: 12px;
+                    spacing: 6px;
+
+                    Text {
+                        text: "Outgoing: \{root.tx_bitrate} Mbps | \{root.tx_loss}% Loss";
+                        color: #F4F7FF;
+                    }
+
+                    Text {
+                        text: "Incoming: \{root.rx_jitter}ms Jitter | \{root.rx_resolution}";
+                        color: #B9CAE6;
+                    }
+                }
+            }
+
+            pip := Rectangle {
+                x: parent.width - self.width - 22px;
+                y: parent.height - self.height - 22px;
+                width: 248px;
+                height: 148px;
+                background: #0D1628;
+                border-radius: 16px;
+                border-width: 1px;
+                border-color: #42628E;
+                drop-shadow-color: #00000066;
+                drop-shadow-blur: 20px;
+                drop-shadow-offset-y: 6px;
+
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: root.local_video_frame;
+                    image-fit: contain;
                 }
             }
         }
@@ -51,19 +89,33 @@ export component MainWindow inherits Window {
         HorizontalLayout {
             spacing: 12px;
 
-            LineEdit {
+            ComboBox {
                 horizontal-stretch: 1;
-                placeholder-text: "Address";
-                text <=> root.address;
-                accepted => {
-                    root.connect_requested(root.address);
-                }
+                model <=> root.peers;
+                current-index <=> root.selected_peer_index;
             }
 
             Button {
                 text: "Connect";
+                enabled: root.selected_peer_index >= 0;
                 clicked => {
-                    root.connect_requested(root.address);
+                    root.connect_requested();
+                }
+            }
+
+            Switch {
+                text: "Mute Audio";
+                checked <=> root.audio_muted;
+                toggled => {
+                    root.audio_muted_toggled(root.audio_muted);
+                }
+            }
+
+            Switch {
+                text: "Stop Video";
+                checked <=> root.video_stopped;
+                toggled => {
+                    root.video_stopped_toggled(root.video_stopped);
                 }
             }
         }
