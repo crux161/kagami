@@ -1,94 +1,202 @@
-# Request for Change: Export Sankaku Streaming FFI Surface
+# SANKAKU-FFI-RESPONSE
 
-Date: 2026-02-28
-Requester: Kagami reference client
-Target: `sankaku-core`
+Audience: Kagami developers  
+Subject: Sankaku/RT FFI availability and integration guidance
 
-## Current Verified State
+## Summary
 
-Kagami now links against the precompiled shared libraries shipped in this repository:
+The Sankaku Streaming FFI is now implemented in `sankaku-core` and exported through a stable C ABI for downstream integration.
 
-- `dependencies/sankaku/libsankaku.dylib`
-- `dependencies/nezumi/libnezumi.dylib`
+This update provides:
 
-Kagami does not import either project as a Rust crate, does not compile any code from `reference/`, and currently reaches Sankaku only through the dynamic library boundary.
+- An opaque stream handle for managing Sankaku/RT session state across the ABI boundary.
+- A pure C-primitive QUIC/session handle wrapper that does not require Kagami to compile or link `quinn`.
+- C-compatible frame structs for outbound and inbound video payload exchange.
+- Exported lifecycle, send, polling, and frame-free functions.
+- A strict ownership model to prevent cross-allocator faults.
 
-That integration is working at the initialization level:
+No Rust-specific async, Tokio, Quinn, or standard-library container types are exposed in the public C ABI surface.
 
-- Kagami links successfully against `libsankaku.dylib`.
-- Kagami calls `init()` through an `extern "C"` declaration at process startup.
-- The shipped `libsankaku.dylib` currently exposes only one global symbol relevant to Sankaku's own API surface: `_init`.
+## Data Structures and Handles
 
-Using the `reference/` tree in read-only mode to verify the current Sankaku implementation, the streaming functionality already exists in Rust source form inside `sankaku-core`, including:
+### Opaque Stream Handle
 
-- `SankakuSender`
-- `SankakuReceiver`
-- `SankakuStream`
-- `VideoFrame`
-- `InboundVideoFrame`
+Sankaku now exposes an opaque stream handle:
 
-However, those streaming types and methods are ordinary Rust API in `sankaku-core/src/session.rs`. They are not exported as C ABI entry points from the shipped dylib.
+```c
+typedef struct SankakuStreamHandle SankakuStreamHandle;
+```
 
-## Problem Statement
+This handle owns the internal Rust session state, including the sender/receiver pipeline and the runtime tasks required to service QUIC-backed Sankaku/RT traffic.
 
-The current Sankaku dylib is sufficient for global initialization, but insufficient for media transport integration from Kagami.
+Kagami must treat this type as opaque and only pass it back to exported Sankaku functions.
 
-At this point in time, Kagami can:
+### QUIC Session Wrapper
 
-- load the Sankaku shared library;
-- resolve and call `init()`.
+Stream creation accepts an FFI-safe QUIC handle wrapper:
 
-Kagami cannot, through the dylib alone:
+```c
+typedef enum SankakuQuicHandleKind {
+    SANKAKU_QUIC_HANDLE_INVALID = 0,
+    SANKAKU_QUIC_HANDLE_CONNECTION = 1,
+    SANKAKU_QUIC_HANDLE_ENDPOINT = 2
+} SankakuQuicHandleKind;
 
-- construct a stream sender or receiver;
-- attach Sankaku streaming state to a QUIC session through an FFI-safe handle;
-- submit outbound `VideoFrame` payloads for transport;
-- receive or poll `InboundVideoFrame` events;
-- manage ownership of streaming buffers across the ABI boundary.
+typedef struct SankakuQuicHandle {
+    SankakuQuicHandleKind kind;
+    uint64_t handle;
+} SankakuQuicHandle;
+```
 
-Because Kagami is required to consume Sankaku only as a dynamic library, these missing exports block all further streaming work.
+This is the ABI-safe representation used to pass an opaque connection identifier, endpoint identifier, or raw transport descriptor into Sankaku.
 
-## Requested Change
+Kagami must not pass a `quinn::Connection*`, `quinn::Endpoint*`, or any other Rust-native pointer across the ABI boundary. Kagami must not compile or link the `quinn` crate as part of this integration.
 
-Add an explicit `extern "C"` FFI layer to `sankaku-core` for the streaming path.
+### Frame Kind Enum
 
-### Required Scope
+Outbound and inbound frames use a shared C-compatible kind enum:
 
-1. Add FFI-safe constructors and destructors for `SankakuStream`, or for equivalent sender and receiver handles.
-   The constructor should accept an opaque QUIC connection handle, or an equivalent FFI-safe registration mechanism, instead of exposing Rust `quinn::Connection` or `Endpoint` types directly across the ABI.
+```c
+typedef enum {
+    SANKAKU_FRAME_KIND_KEYFRAME = 0,
+    SANKAKU_FRAME_KIND_DELTA = 1
+} SankakuFrameKind;
+```
 
-2. Add FFI-safe functions to submit and recover video frame data.
-   The API should cover the equivalent of `VideoFrame` input and `InboundVideoFrame` output using C-compatible structs, explicit pointer-plus-length parameters, and documented lifetime and free rules.
+### Outbound Frame Structure
 
-3. Add an FFI-safe polling or dequeue API for inbound video events.
-   Kagami needs a way to retrieve `InboundVideoFrame` instances from Sankaku without depending on Rust channels, Tokio types, or async Rust signatures across the boundary.
+Outbound video submission uses:
 
-4. Add explicit release functions for any heap-backed objects or buffers returned by the FFI.
-   Ownership must remain unambiguous at the C ABI boundary.
+```c
+typedef struct SankakuVideoFrame {
+    const uint8_t* data;
+    size_t len;
+    uint64_t pts_us;
+    uint64_t dts_us;
+    uint8_t codec;
+    SankakuFrameKind kind;
+    uint32_t flags;
+} SankakuVideoFrame;
+```
 
-## Justification
+This structure is C-compatible and contains only raw pointers, sizes, timestamps, codec identifiers, and frame flags.
 
-This request is necessary because the current binary export surface does not match the existing internal streaming implementation.
+### Inbound Frame Structure
 
-The read-only Sankaku source shows that the stream transport logic already exists in Rust, but the compiled dylib does not currently export that capability in a form Kagami can use. The result is a hard architectural mismatch:
+Inbound frame delivery uses:
 
-- the functionality exists inside Sankaku;
-- Kagami is only allowed to talk to Sankaku through `libsankaku.dylib`;
-- the dylib presently exports only `init()`.
+```c
+typedef struct SankakuInboundFrame {
+    const uint8_t* data;
+    size_t len;
+    uint64_t session_id;
+    uint32_t stream_id;
+    uint64_t frame_index;
+    uint64_t pts_us;
+    uint64_t dts_us;
+    uint8_t codec;
+    SankakuFrameKind kind;
+    uint32_t flags;
+    float packet_loss_ratio;
+} SankakuInboundFrame;
+```
 
-Kagami is the reference client and must preserve isolation by staying on the shared-library boundary. Importing `sankaku-core` directly, or compiling reference-source files into Kagami, would violate the no-contamination rule and defeat the intended separation between client and media engine.
+This structure is heap-allocated by Sankaku when a frame is returned from polling.
 
-An explicit C ABI layer is the correct fix because it:
+## Exported FFI Functions
 
-- preserves Sankaku's existing internal Rust implementation;
-- avoids leaking Rust-only types across the ABI;
-- gives Kagami a stable binary contract instead of a source-level dependency;
-- keeps memory ownership and lifecycle rules centralized inside Sankaku.
+### Lifecycle
 
-## Acceptance Criteria
+```c
+SankakuStreamHandle* sankaku_stream_create(SankakuQuicHandle quic_handle);
+void sankaku_stream_destroy(SankakuStreamHandle* handle);
+```
 
-1. `libsankaku.dylib` exports stream-related `extern "C"` symbols in addition to `init()`.
-2. Kagami can create or attach a Sankaku streaming endpoint strictly through the dylib.
-3. Kagami can submit outbound video frames without importing Sankaku Rust types.
-4. Kagami can poll or dequeue inbound video frames through the dylib with documented ownership semantics.
-5. No Rust-specific async, Tokio, or Quinn types cross the public FFI boundary directly.
+`sankaku_stream_create`
+
+- Creates a Sankaku/RT stream instance from an owned QUIC connection or endpoint wrapper.
+- Initializes the internal runtime and streaming state required by the sender/receiver loop.
+- Returns `NULL` on failure.
+
+`sankaku_stream_destroy`
+
+- Shuts down the stream and releases all internal Rust-owned resources.
+- Safe to call with `NULL`.
+- Must not race with any other operation using the same handle.
+
+### Transmission
+
+```c
+int32_t sankaku_stream_send_frame(
+    SankakuStreamHandle* handle,
+    const SankakuVideoFrame* frame
+);
+```
+
+- Submits one outbound frame into the Sankaku sender pipeline.
+- Copies the payload from the caller-provided frame buffer into internal Rust-owned storage before transmission.
+- Returns `0` on success.
+- Returns negative error codes for invalid arguments, invalid handles, disconnected streams, internal failures, or overflow conditions.
+- Internal Rust panics are trapped and converted into an error code rather than crossing the C ABI boundary.
+
+### Polling and Ownership
+
+```c
+int32_t sankaku_stream_poll_frame(
+    SankakuStreamHandle* handle,
+    SankakuInboundFrame** out_frame
+);
+
+void sankaku_frame_free(SankakuInboundFrame* frame);
+```
+
+`sankaku_stream_poll_frame`
+
+- Performs a non-blocking poll against the internal inbound frame queue.
+- If a frame is available, allocates a `SankakuInboundFrame` and returns it through `out_frame`.
+- Returns a specific negative status when no frame is currently available.
+- Does not block the calling thread waiting for network input.
+
+`sankaku_frame_free`
+
+- Releases a frame previously returned by `sankaku_stream_poll_frame`.
+- Must be called by Kagami once it has finished processing an inbound frame.
+
+## Compiled Artifacts
+
+For integration and linking, Kagami should use the packaged Windows outputs at the following paths:
+
+- `core/sankaku/sankaku.dll`
+- `core/sankaku/sankaku.dll.lib`
+- `core/nezumi/nezumi.dll`
+- `core/nezumi/nezumi.dll.lib`
+
+These are the only supported runtime and import-library artifacts for MSVC/Windows integration. Kagami should not search for legacy macOS `.dylib` outputs or alternative library layouts when wiring the linker or deployment steps.
+
+## Memory Contract
+
+The allocator boundary is strict.
+
+Rules:
+
+- Kagami owns the memory behind any outbound `SankakuVideoFrame` input buffer it provides.
+- Sankaku copies outbound frame payloads into internal Rust-managed storage before transmission.
+- Sankaku owns any `SankakuInboundFrame` returned by `sankaku_stream_poll_frame` until Kagami explicitly releases it.
+- Kagami must return every inbound frame to:
+
+```c
+void sankaku_frame_free(SankakuInboundFrame* frame);
+```
+
+Failure to do so will cause memory leaks. Freeing these frames with a foreign allocator instead of `sankaku_frame_free` risks cross-allocator corruption or process crashes.
+
+## Integration Notes
+
+- The public ABI intentionally avoids exposing Rust futures, Tokio runtimes, `Vec`, `String`, `quinn::Connection`, or other Rust-native implementation types.
+- Kagami should treat `SankakuQuicHandle.handle` as an opaque C primitive and let Sankaku resolve it against its own internal QUIC state.
+- Handle operations are internally serialized inside the Sankaku DLL.
+- `sankaku_stream_destroy` must not run concurrently with send or poll operations on the same handle.
+
+## Recommended Next Step for Kagami
+
+Kagami can now bind directly against `sankaku.h`, link against `core/sankaku/sankaku.dll.lib`, deploy `core/sankaku/sankaku.dll` and `core/nezumi/nezumi.dll` beside the final executable, and begin integration using the lifecycle, send, poll, and free functions described above.

@@ -10,6 +10,7 @@ The Sankaku Streaming FFI is now implemented in `sankaku-core` and exported thro
 This update provides:
 
 - An opaque stream handle for managing Sankaku/RT session state across the ABI boundary.
+- A pure C-primitive QUIC/session handle wrapper that does not require Kagami to compile or link `quinn`.
 - C-compatible frame structs for outbound and inbound video payload exchange.
 - Exported lifecycle, send, polling, and frame-free functions.
 - A strict ownership model to prevent cross-allocator faults.
@@ -43,11 +44,24 @@ typedef enum SankakuQuicHandleKind {
 
 typedef struct SankakuQuicHandle {
     SankakuQuicHandleKind kind;
-    void* handle;
+    uint64_t handle;
 } SankakuQuicHandle;
 ```
 
-This is the ABI-safe representation used to transfer ownership of an already-configured QUIC connection or endpoint into Sankaku.
+This is the ABI-safe representation used to pass an opaque connection identifier, endpoint identifier, or raw transport descriptor into Sankaku.
+
+Kagami must not pass a `quinn::Connection*`, `quinn::Endpoint*`, or any other Rust-native pointer across the ABI boundary. Kagami must not compile or link the `quinn` crate as part of this integration.
+
+### Frame Kind Enum
+
+Outbound and inbound frames use a shared C-compatible kind enum:
+
+```c
+typedef enum {
+    SANKAKU_FRAME_KIND_KEYFRAME = 0,
+    SANKAKU_FRAME_KIND_DELTA = 1
+} SankakuFrameKind;
+```
 
 ### Outbound Frame Structure
 
@@ -157,7 +171,7 @@ For integration and linking, Kagami should use the packaged Windows outputs at t
 - `core/nezumi/nezumi.dll`
 - `core/nezumi/nezumi.dll.lib`
 
-These are the expected runtime and import-library artifacts for MSVC/Windows integration.
+These are the only supported runtime and import-library artifacts for MSVC/Windows integration. Kagami should not search for legacy macOS `.dylib` outputs or alternative library layouts when wiring the linker or deployment steps.
 
 ## Memory Contract
 
@@ -179,9 +193,10 @@ Failure to do so will cause memory leaks. Freeing these frames with a foreign al
 ## Integration Notes
 
 - The public ABI intentionally avoids exposing Rust futures, Tokio runtimes, `Vec`, `String`, `quinn::Connection`, or other Rust-native implementation types.
+- Kagami should treat `SankakuQuicHandle.handle` as an opaque C primitive and let Sankaku resolve it against its own internal QUIC state.
 - Handle operations are internally serialized inside the Sankaku DLL.
 - `sankaku_stream_destroy` must not run concurrently with send or poll operations on the same handle.
 
 ## Recommended Next Step for Kagami
 
-Kagami can now bind directly against `sankaku.h`, link against `sankaku.dll.lib`, and begin integration using the lifecycle, send, poll, and free functions described above.
+Kagami can now bind directly against `sankaku.h`, link against `core/sankaku/sankaku.dll.lib`, deploy `core/sankaku/sankaku.dll` and `core/nezumi/nezumi.dll` beside the final executable, and begin integration using the lifecycle, send, poll, and free functions described above.

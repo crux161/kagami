@@ -1,6 +1,11 @@
+#![allow(dead_code)]
+
+use std::ptr;
+
 pub const VIDEO_CODEC_HEVC: u8 = 0x01;
 #[allow(dead_code)]
 pub const AUDIO_CODEC_OPUS: u8 = 0x03;
+pub const SANKAKU_FRAME_FLAG_KEYFRAME: u32 = 0x0000_0001;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default)]
@@ -52,6 +57,108 @@ impl VideoFrame {
     }
 }
 
+#[repr(C)]
+pub struct SankakuStreamHandle {
+    _private: [u8; 0],
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SankakuQuicHandleKind {
+    Invalid = 0,
+    Connection = 1,
+    Endpoint = 2,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct SankakuQuicHandle {
+    pub kind: SankakuQuicHandleKind,
+    pub handle: u64,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SankakuFrameKind {
+    Keyframe = 0,
+    Delta = 1,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct SankakuVideoFrame {
+    pub data: *const u8,
+    pub len: usize,
+    pub pts_us: u64,
+    pub dts_us: u64,
+    pub codec: u8,
+    pub kind: SankakuFrameKind,
+    pub flags: u32,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct SankakuInboundFrame {
+    pub data: *const u8,
+    pub len: usize,
+    pub session_id: u64,
+    pub stream_id: u32,
+    pub frame_index: u64,
+    pub pts_us: u64,
+    pub dts_us: u64,
+    pub codec: u8,
+    pub kind: SankakuFrameKind,
+    pub flags: u32,
+    pub packet_loss_ratio: f32,
+}
+
+#[cfg(target_os = "windows")]
 unsafe extern "C" {
     pub fn init();
+    pub fn sankaku_stream_create(quic_handle: SankakuQuicHandle) -> *mut SankakuStreamHandle;
+    pub fn sankaku_stream_destroy(handle: *mut SankakuStreamHandle);
+    pub fn sankaku_stream_send_frame(
+        handle: *mut SankakuStreamHandle,
+        frame: *const SankakuVideoFrame,
+    ) -> i32;
+    pub fn sankaku_stream_poll_frame(
+        handle: *mut SankakuStreamHandle,
+        out_frame: *mut *mut SankakuInboundFrame,
+    ) -> i32;
+    pub fn sankaku_frame_free(frame: *mut SankakuInboundFrame);
 }
+
+#[cfg(not(target_os = "windows"))]
+pub unsafe fn init() {}
+
+#[cfg(not(target_os = "windows"))]
+pub unsafe fn sankaku_stream_create(_quic_handle: SankakuQuicHandle) -> *mut SankakuStreamHandle {
+    ptr::null_mut()
+}
+
+#[cfg(not(target_os = "windows"))]
+pub unsafe fn sankaku_stream_destroy(_handle: *mut SankakuStreamHandle) {}
+
+#[cfg(not(target_os = "windows"))]
+pub unsafe fn sankaku_stream_send_frame(
+    _handle: *mut SankakuStreamHandle,
+    _frame: *const SankakuVideoFrame,
+) -> i32 {
+    -1
+}
+
+#[cfg(not(target_os = "windows"))]
+pub unsafe fn sankaku_stream_poll_frame(
+    _handle: *mut SankakuStreamHandle,
+    out_frame: *mut *mut SankakuInboundFrame,
+) -> i32 {
+    if !out_frame.is_null() {
+        unsafe {
+            *out_frame = ptr::null_mut();
+        }
+    }
+    -1
+}
+
+#[cfg(not(target_os = "windows"))]
+pub unsafe fn sankaku_frame_free(_frame: *mut SankakuInboundFrame) {}
