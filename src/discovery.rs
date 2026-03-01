@@ -1,33 +1,28 @@
 use std::collections::HashMap;
 use std::env;
-use std::io;
-use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, UdpSocket};
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc, Mutex,
-};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
+use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-pub const DEFAULT_MEDIA_PORT: u16 = 9292;
-const DISCOVERY_PORT: u16 = 39292;
-const DISCOVERY_MAGIC: &str = "KAGAMI_DISCOVERY";
-const DISCOVERY_VERSION: &str = "1";
-const BROADCAST_INTERVAL: Duration = Duration::from_secs(1);
-const PEER_TTL: Duration = Duration::from_secs(5);
+use mdns_sd::{ResolvedService, ScopedIp, ServiceDaemon, ServiceEvent, ServiceInfo};
+
+pub const KAGAMI_SERVICE_TYPE: &str = "_kagami._udp.local.";
+const TXT_CAPABILITIES: &str = "capabilities";
+const TXT_DISPLAY_NAME: &str = "display-name";
+const TXT_INSTANCE_ID: &str = "instance-id";
+const TXT_PORT: &str = "port";
 
 #[derive(Clone, Debug)]
 pub struct Peer {
     pub id: String,
     pub display_name: String,
+    pub host_name: String,
     pub addr: SocketAddr,
     pub capabilities: Vec<String>,
-    pub last_seen_at: Instant,
 }
 
 impl Peer {
     pub fn label(&self) -> String {
-        let short_id = self.id.chars().take(8).collect::<String>();
         let capabilities = if self.capabilities.is_empty() {
             "No capabilities".to_owned()
         } else {
@@ -35,125 +30,115 @@ impl Peer {
         };
 
         format!(
-            "{} · {} · {} · {}",
-            self.display_name, self.addr, short_id, capabilities
+            "{} ({}) · {} · {}",
+            self.display_name, self.host_name, self.addr, capabilities
         )
     }
 }
 
-pub struct DiscoveryEngine {
-    instance_id: String,
-    display_name: String,
-    service_port: u16,
-    capabilities: Vec<String>,
+pub struct DiscoveryManager {
+    daemon: ServiceDaemon,
+    local_fullname: String,
     peers: Arc<Mutex<HashMap<String, Peer>>>,
-    running: Arc<AtomicBool>,
-    broadcaster: Option<JoinHandle<()>>,
-    listener: Option<JoinHandle<()>>,
+    browser: Option<JoinHandle<()>>,
 }
 
-impl DiscoveryEngine {
-    pub fn new(service_port: u16, capabilities: Vec<String>) -> Self {
-        let display_name = env::var("HOSTNAME")
-            .or_else(|_| env::var("COMPUTERNAME"))
-            .or_else(|_| env::var("USER"))
-            .unwrap_or_else(|_| "Kagami".to_owned());
-        let instance_id = format!("{}-{}", display_name, unique_suffix());
+impl DiscoveryManager {
+    pub fn new(
+        service_port: u16,
+        instance_id: String,
+        capabilities: Vec<String>,
+    ) -> Result<Self, String> {
+        let daemon = ServiceDaemon::new()
+            .map_err(|error| format!("failed to start mDNS discovery daemon: {error}"))?;
+        let display_name = local_display_name();
+        let instance_name = format!("{display_name}-{instance_id}");
+        let host_name = format!("{}.local.", sanitize_dns_label(&local_host_label()));
+        let addresses = local_addresses();
+        let local_listener_addrs = addresses
+            .iter()
+            .copied()
+            .map(|ip| SocketAddr::new(ip, service_port))
+            .collect::<Vec<_>>();
+        let properties = [
+            (TXT_CAPABILITIES, capabilities.join(",")),
+            (TXT_DISPLAY_NAME, display_name.clone()),
+            (TXT_INSTANCE_ID, instance_id.clone()),
+            (TXT_PORT, service_port.to_string()),
+        ];
 
-        Self {
-            instance_id,
-            display_name,
+        let service_info = ServiceInfo::new(
+            KAGAMI_SERVICE_TYPE,
+            &instance_name,
+            &host_name,
+            addresses.as_slice(),
             service_port,
-            capabilities,
-            peers: Arc::new(Mutex::new(HashMap::new())),
-            running: Arc::new(AtomicBool::new(false)),
-            broadcaster: None,
-            listener: None,
-        }
-    }
+            &properties[..],
+        )
+        .map_err(|error| format!("failed to build mDNS service record: {error}"))?
+        .enable_addr_auto();
+        let local_fullname = service_info.get_fullname().to_owned();
 
-    pub fn start(&mut self) -> io::Result<()> {
-        if self.running.swap(true, Ordering::SeqCst) {
-            return Ok(());
-        }
+        daemon
+            .register(service_info)
+            .map_err(|error| format!("failed to register mDNS service: {error}"))?;
 
-        let broadcast_socket = UdpSocket::bind(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0))?;
-        broadcast_socket.set_broadcast(true)?;
+        let receiver = daemon
+            .browse(KAGAMI_SERVICE_TYPE)
+            .map_err(|error| format!("failed to browse mDNS services: {error}"))?;
 
-        let listener_socket =
-            UdpSocket::bind(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, DISCOVERY_PORT))?;
-        listener_socket.set_read_timeout(Some(Duration::from_millis(500)))?;
+        let peers = Arc::new(Mutex::new(HashMap::<String, Peer>::new()));
+        let peer_store = Arc::clone(&peers);
+        let local_fullname_for_thread = local_fullname.clone();
+        let local_instance_id_for_thread = instance_id;
 
-        let running = Arc::clone(&self.running);
-        let packet = encode_packet(
-            &self.instance_id,
-            &self.display_name,
-            self.service_port,
-            &self.capabilities,
-        );
-        self.broadcaster = Some(thread::spawn(move || {
-            while running.load(Ordering::SeqCst) {
-                let _ = broadcast_socket.send_to(
-                    packet.as_bytes(),
-                    SocketAddrV4::new(Ipv4Addr::BROADCAST, DISCOVERY_PORT),
-                );
-                thread::sleep(BROADCAST_INTERVAL);
-            }
-        }));
+        let browser = thread::spawn(move || {
+            while let Ok(event) = receiver.recv() {
+                match event {
+                    ServiceEvent::ServiceResolved(service) => {
+                        if service.get_fullname() == local_fullname_for_thread
+                            || resolved_instance_id(&service).is_some_and(|instance_id| {
+                                instance_id == local_instance_id_for_thread
+                            })
+                        {
+                            continue;
+                        }
 
-        let running = Arc::clone(&self.running);
-        let peers = Arc::clone(&self.peers);
-        let instance_id = self.instance_id.clone();
-        self.listener = Some(thread::spawn(move || {
-            let mut buffer = [0u8; 1024];
-
-            while running.load(Ordering::SeqCst) {
-                match listener_socket.recv_from(&mut buffer) {
-                    Ok((len, source)) => {
-                        if let Some(packet) = parse_packet(&buffer[..len]) {
-                            if packet.instance_id == instance_id {
+                        if let Some(peer) = peer_from_resolved(&service) {
+                            if local_listener_addrs.contains(&peer.addr) {
                                 continue;
                             }
 
-                            let peer = Peer {
-                                id: packet.instance_id.clone(),
-                                display_name: packet.display_name,
-                                addr: SocketAddr::new(source.ip(), packet.service_port),
-                                capabilities: packet.capabilities,
-                                last_seen_at: Instant::now(),
-                            };
-
-                            let mut peer_map = peers
+                            let mut peers = peer_store
                                 .lock()
-                                .expect("discovery peer lock should not be poisoned");
-                            peer_map.insert(packet.instance_id, peer);
-                            prune_peers(&mut peer_map);
+                                .expect("discovery peer store should not be poisoned");
+                            peers.insert(peer.id.clone(), peer);
                         }
                     }
-                    Err(error)
-                        if matches!(
-                            error.kind(),
-                            io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut
-                        ) =>
-                    {
-                        let mut peer_map = peers
+                    ServiceEvent::ServiceRemoved(_, fullname) => {
+                        let mut peers = peer_store
                             .lock()
-                            .expect("discovery peer lock should not be poisoned");
-                        prune_peers(&mut peer_map);
+                            .expect("discovery peer store should not be poisoned");
+                        peers.remove(&fullname);
                     }
-                    Err(_) => {}
+                    _ => {}
                 }
             }
-        }));
+        });
 
-        Ok(())
+        Ok(Self {
+            daemon,
+            local_fullname,
+            peers,
+            browser: Some(browser),
+        })
     }
 
     pub fn peers_snapshot(&self) -> Vec<Peer> {
         let mut peers = self
             .peers
             .lock()
-            .expect("discovery peer lock should not be poisoned")
+            .expect("discovery peer store should not be poisoned")
             .values()
             .cloned()
             .collect::<Vec<_>>();
@@ -162,78 +147,119 @@ impl DiscoveryEngine {
     }
 }
 
-impl Drop for DiscoveryEngine {
+impl Drop for DiscoveryManager {
     fn drop(&mut self) {
-        self.running.store(false, Ordering::SeqCst);
+        let _ = self.daemon.stop_browse(KAGAMI_SERVICE_TYPE);
+        let _ = self.daemon.unregister(&self.local_fullname);
+        let _ = self.daemon.shutdown();
 
-        if let Some(handle) = self.broadcaster.take() {
-            let _ = handle.join();
-        }
-        if let Some(handle) = self.listener.take() {
-            let _ = handle.join();
+        if let Some(browser) = self.browser.take() {
+            let _ = browser.join();
         }
     }
 }
 
-struct DiscoveryPacket {
-    instance_id: String,
-    display_name: String,
-    service_port: u16,
-    capabilities: Vec<String>,
-}
-
-fn encode_packet(
-    instance_id: &str,
-    display_name: &str,
-    service_port: u16,
-    capabilities: &[String],
-) -> String {
-    format!(
-        "{}|{}|{}|{}|{}|{}",
-        DISCOVERY_MAGIC,
-        DISCOVERY_VERSION,
-        instance_id,
-        display_name,
-        service_port,
-        capabilities.join(",")
-    )
-}
-
-fn parse_packet(bytes: &[u8]) -> Option<DiscoveryPacket> {
-    let payload = std::str::from_utf8(bytes).ok()?;
-    let mut parts = payload.split('|');
-    let magic = parts.next()?;
-    let version = parts.next()?;
-    if magic != DISCOVERY_MAGIC || version != DISCOVERY_VERSION {
-        return None;
-    }
-
-    let instance_id = parts.next()?.to_owned();
-    let display_name = parts.next()?.to_owned();
-    let service_port = parts.next()?.parse::<u16>().ok()?;
-    let capabilities = parts
-        .next()
+fn peer_from_resolved(service: &ResolvedService) -> Option<Peer> {
+    let id = resolved_instance_id(service).unwrap_or_else(|| service.get_fullname().to_owned());
+    let port = service
+        .get_properties()
+        .get_property_val_str(TXT_PORT)
+        .and_then(|value| value.parse::<u16>().ok())
+        .unwrap_or(service.get_port());
+    let addr = service
+        .get_addresses()
+        .iter()
+        .find_map(scoped_ip_to_ip)
+        .map(|ip| SocketAddr::new(ip, port))?;
+    let capabilities = service
+        .get_properties()
+        .get_property_val_str(TXT_CAPABILITIES)
         .unwrap_or_default()
         .split(',')
         .filter(|value| !value.is_empty())
         .map(str::to_owned)
         .collect::<Vec<_>>();
 
-    Some(DiscoveryPacket {
-        instance_id,
-        display_name,
-        service_port,
+    Some(Peer {
+        id,
+        display_name: service
+            .get_properties()
+            .get_property_val_str(TXT_DISPLAY_NAME)
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| service.get_fullname().split('.').next().unwrap_or_default())
+            .to_owned(),
+        host_name: service.get_hostname().trim_end_matches('.').to_owned(),
+        addr,
         capabilities,
     })
 }
 
-fn prune_peers(peers: &mut HashMap<String, Peer>) {
-    peers.retain(|_, peer| peer.last_seen_at.elapsed() <= PEER_TTL);
+fn resolved_instance_id(service: &ResolvedService) -> Option<String> {
+    service
+        .get_properties()
+        .get_property_val_str(TXT_INSTANCE_ID)
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned)
 }
 
-fn unique_suffix() -> u128 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos()
+fn scoped_ip_to_ip(address: &ScopedIp) -> Option<IpAddr> {
+    match address {
+        ScopedIp::V4(address) => Some(IpAddr::V4(*address.addr())),
+        ScopedIp::V6(address) => Some(IpAddr::V6(*address.addr())),
+        _ => None,
+    }
+}
+
+fn local_addresses() -> Vec<IpAddr> {
+    let mut addresses = Vec::new();
+
+    if let Ok(socket) = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)) {
+        let _ = socket.connect((Ipv4Addr::new(224, 0, 0, 251), 5353));
+        if let Ok(local_addr) = socket.local_addr() {
+            let ip = local_addr.ip();
+            if !ip.is_unspecified() && !ip.is_loopback() {
+                addresses.push(ip);
+            }
+        }
+    }
+
+    if addresses.is_empty() {
+        addresses.push(IpAddr::V4(Ipv4Addr::LOCALHOST));
+    }
+
+    addresses
+}
+
+fn local_display_name() -> String {
+    env::var("HOSTNAME")
+        .or_else(|_| env::var("COMPUTERNAME"))
+        .or_else(|_| env::var("USER"))
+        .unwrap_or_else(|_| "Kagami".to_owned())
+}
+
+fn local_host_label() -> String {
+    env::var("HOSTNAME")
+        .or_else(|_| env::var("COMPUTERNAME"))
+        .unwrap_or_else(|_| "kagami".to_owned())
+}
+
+fn sanitize_dns_label(value: &str) -> String {
+    let mut label = value
+        .chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() || character == '-' {
+                character.to_ascii_lowercase()
+            } else {
+                '-'
+            }
+        })
+        .collect::<String>();
+
+    label.truncate(63);
+    label = label.trim_matches('-').to_owned();
+    if label.is_empty() {
+        "kagami".to_owned()
+    } else {
+        label
+    }
 }

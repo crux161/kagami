@@ -3,11 +3,13 @@ import { Button, ComboBox, Switch } from "std-widgets.slint";
 export component MainWindow inherits Window {
     in-out property <image> remote_video_frame;
     in-out property <image> local_video_frame;
-    in-out property <string> tx_bitrate: "0.00";
-    in-out property <string> tx_loss: "0.00";
-    in-out property <string> rx_jitter: "0.0";
-    in-out property <string> rx_resolution: "Waiting";
-    in-out property <[string]> peers;
+    in-out property <string> upload_bitrate: "0.00";
+    in-out property <string> upload_loss: "0.00";
+    in-out property <string> path_rtt_ms: "Waiting";
+    in-out property <string> udp_tx_dropped: "0";
+    in-out property <string> download_jitter: "0.0";
+    in-out property <string> download_latency: "Waiting";
+    in-out property <[string]> discovered_peers;
     in-out property <int> selected_peer_index: -1;
     in-out property <bool> audio_muted: false;
     in-out property <bool> video_stopped: false;
@@ -31,7 +33,7 @@ export component MainWindow inherits Window {
             border-width: 1px;
             border-color: #203654;
 
-            Image {
+            RemoteView := Image {
                 width: parent.width;
                 height: parent.height;
                 source: root.remote_video_frame;
@@ -41,8 +43,8 @@ export component MainWindow inherits Window {
             Rectangle {
                 x: 18px;
                 y: 18px;
-                width: 360px;
-                height: 72px;
+                width: 470px;
+                height: 94px;
                 background: #0B162BCC;
                 border-radius: 14px;
                 border-width: 1px;
@@ -53,12 +55,17 @@ export component MainWindow inherits Window {
                     spacing: 6px;
 
                     Text {
-                        text: "Outgoing: \{root.tx_bitrate} Mbps | \{root.tx_loss}% Loss";
+                        text: "Upload: \{root.upload_bitrate} Mbps | \{root.upload_loss}% Loss | udp_tx.dropped \{root.udp_tx_dropped}";
                         color: #F4F7FF;
                     }
 
                     Text {
-                        text: "Incoming: \{root.rx_jitter}ms Jitter | \{root.rx_resolution}";
+                        text: "Download: \{root.download_jitter}ms Jitter | \{root.download_latency} Latency";
+                        color: #B9CAE6;
+                    }
+
+                    Text {
+                        text: "Link: path.rtt \{root.path_rtt_ms}";
                         color: #B9CAE6;
                     }
                 }
@@ -77,11 +84,18 @@ export component MainWindow inherits Window {
                 drop-shadow-blur: 20px;
                 drop-shadow-offset-y: 6px;
 
-                Image {
+                LocalPreview := Image {
                     width: parent.width;
                     height: parent.height;
                     source: root.local_video_frame;
                     image-fit: contain;
+                }
+
+                Text {
+                    x: 12px;
+                    y: 10px;
+                    text: "Self-View";
+                    color: #E7EEF9;
                 }
             }
         }
@@ -89,9 +103,15 @@ export component MainWindow inherits Window {
         HorizontalLayout {
             spacing: 12px;
 
+            Text {
+                text: "Discovered Peers";
+                color: #B9CAE6;
+                vertical-alignment: center;
+            }
+
             ComboBox {
                 horizontal-stretch: 1;
-                model <=> root.peers;
+                model <=> root.discovered_peers;
                 current-index <=> root.selected_peer_index;
             }
 

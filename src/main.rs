@@ -3,16 +3,21 @@ mod nezumi_ffi;
 mod sankaku_ffi;
 
 use std::cell::RefCell;
+use std::net::{Ipv4Addr, SocketAddr, UdpSocket};
+use std::process;
 use std::rc::Rc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use discovery::{DiscoveryEngine, Peer, DEFAULT_MEDIA_PORT};
+use discovery::{DiscoveryManager, Peer};
 use sankaku_ffi::{SankakuStreamStats, SankakuTelemetry, VideoFrame, VIDEO_CODEC_HEVC};
 
 slint::include_modules!();
 
+const PREFERRED_RECEIVER_PORT: u16 = 9292;
+
 trait MediaProvider {
     fn connect(&mut self, addr: &str) -> Result<(), String>;
+    fn local_receiver_port(&self) -> u16;
     fn poll_frame(&mut self) -> Option<slint::Image>;
     fn poll_local_preview(&mut self) -> Option<slint::Image>;
     fn capture_local_frame(&mut self) -> Option<VideoFrame>;
@@ -22,34 +27,100 @@ trait MediaProvider {
     fn set_video_enabled(&mut self, enabled: bool);
 }
 
-struct SankakuStreamProvider {
+#[derive(Clone, Copy)]
+struct AnimatedSquare {
+    x: i32,
+    y: i32,
+    vx: i32,
+    vy: i32,
+    size: u32,
+}
+
+struct MockDuplexSession {
     connected_addr: Option<String>,
     audio_muted: bool,
     video_enabled: bool,
+    receiver_socket: UdpSocket,
     local_frame_buffer: slint::SharedPixelBuffer<slint::Rgb8Pixel>,
     remote_frame_buffer: slint::SharedPixelBuffer<slint::Rgb8Pixel>,
-    capture_tick: u32,
-    remote_tick: u32,
+    local_square: AnimatedSquare,
+    remote_square: AnimatedSquare,
+    local_phase: u32,
+    remote_phase: u32,
     telemetry: SankakuTelemetry,
     rng_state: u64,
 }
 
-impl SankakuStreamProvider {
+fn bind_receiver_socket() -> UdpSocket {
+    UdpSocket::bind((Ipv4Addr::UNSPECIFIED, PREFERRED_RECEIVER_PORT))
+        .or_else(|_| UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)))
+        .expect("failed to bind local receiver socket")
+}
+
+fn local_instance_id() -> String {
+    let host = std::env::var("HOSTNAME")
+        .or_else(|_| std::env::var("COMPUTERNAME"))
+        .unwrap_or_else(|_| "kagami".to_owned())
+        .chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() || character == '-' {
+                character.to_ascii_lowercase()
+            } else {
+                '-'
+            }
+        })
+        .collect::<String>()
+        .trim_matches('-')
+        .to_owned();
+    let host = if host.is_empty() {
+        "kagami".to_owned()
+    } else {
+        host
+    };
+
+    format!(
+        "{}-{:x}",
+        host,
+        process::id() as u64
+            ^ SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos() as u64
+    )
+}
+
+impl MockDuplexSession {
     fn new() -> Self {
-        let mut provider = Self {
+        let receiver_socket = bind_receiver_socket();
+        let mut session = Self {
             connected_addr: None,
             audio_muted: false,
             video_enabled: true,
+            receiver_socket,
             local_frame_buffer: slint::SharedPixelBuffer::<slint::Rgb8Pixel>::new(320, 180),
             remote_frame_buffer: slint::SharedPixelBuffer::<slint::Rgb8Pixel>::new(1280, 720),
-            capture_tick: 0,
-            remote_tick: 0,
+            local_square: AnimatedSquare {
+                x: 18,
+                y: 14,
+                vx: 4,
+                vy: 3,
+                size: 54,
+            },
+            remote_square: AnimatedSquare {
+                x: 96,
+                y: 72,
+                vx: 7,
+                vy: 5,
+                size: 108,
+            },
+            local_phase: 0,
+            remote_phase: 0,
             telemetry: SankakuTelemetry::default(),
             rng_state: 0x5A17_2D3C_4B91_08EF,
         };
-        provider.render_waiting_remote();
-        provider.render_local_disabled_frame();
-        provider
+        session.render_local_frame();
+        session.render_remote_frame();
+        session
     }
 
     fn next_u32(&mut self) -> u32 {
@@ -72,36 +143,62 @@ impl SankakuStreamProvider {
         min + self.next_unit_f32() * (max - min)
     }
 
-    fn render_local_capture_frame(&mut self) {
-        let phase = self.capture_tick;
-        let muted_overlay = if self.audio_muted { 10u8 } else { 0u8 };
+    fn advance_square(square: &mut AnimatedSquare, width: u32, height: u32) {
+        let max_x = (width as i32 - square.size as i32).max(0);
+        let max_y = (height as i32 - square.size as i32).max(0);
+
+        square.x += square.vx;
+        square.y += square.vy;
+
+        if square.x <= 0 || square.x >= max_x {
+            square.x = square.x.clamp(0, max_x);
+            square.vx = -square.vx;
+        }
+
+        if square.y <= 0 || square.y >= max_y {
+            square.y = square.y.clamp(0, max_y);
+            square.vy = -square.vy;
+        }
+    }
+
+    fn render_local_frame(&mut self) {
         let width = self.local_frame_buffer.width();
         let height = self.local_frame_buffer.height();
+        Self::advance_square(&mut self.local_square, width, height);
+
+        let square = self.local_square;
+        let phase = self.local_phase;
+        let accent = if self.audio_muted { 30u8 } else { 0u8 };
         let pixels = self.local_frame_buffer.make_mut_slice();
 
         for y in 0..height {
             for x in 0..width {
                 let index = (y * width + x) as usize;
-                let wave = ((x + phase * 5) % width) as u8;
-                let scan = ((y * 255) / height) as u8;
-                let focus = if (x + phase * 3) % width < width / 4 {
-                    26u8
-                } else {
-                    0u8
-                };
+                let in_square = x >= square.x as u32
+                    && x < square.x as u32 + square.size
+                    && y >= square.y as u32
+                    && y < square.y as u32 + square.size;
+                let grid = if x % 20 == 0 || y % 20 == 0 { 8u8 } else { 0u8 };
+                let scan = (((x + phase) % width.max(1)) * 255 / width.max(1)) as u8;
+                let status_bar = if y < 16 { 18u8 } else { 0u8 };
 
-                pixels[index] = slint::Rgb8Pixel {
-                    r: 22u8.saturating_add(scan / 5).saturating_add(muted_overlay),
-                    g: 54u8
-                        .saturating_add(wave / 4)
-                        .saturating_add(focus / 2)
-                        .saturating_add(muted_overlay),
-                    b: 88u8.saturating_add(wave / 3).saturating_add(focus),
+                pixels[index] = if in_square {
+                    slint::Rgb8Pixel {
+                        r: 24u8.saturating_add(accent),
+                        g: 104u8.saturating_add(scan / 8),
+                        b: 232,
+                    }
+                } else {
+                    slint::Rgb8Pixel {
+                        r: 8u8.saturating_add(status_bar / 2),
+                        g: 18u8.saturating_add(grid / 2),
+                        b: 44u8.saturating_add(grid).saturating_add(scan / 10),
+                    }
                 };
             }
         }
 
-        self.capture_tick = self.capture_tick.wrapping_add(1);
+        self.local_phase = self.local_phase.wrapping_add(1);
     }
 
     fn render_local_disabled_frame(&mut self) {
@@ -115,69 +212,50 @@ impl SankakuStreamProvider {
         }
     }
 
-    fn render_waiting_remote(&mut self) {
-        let phase = self.remote_tick;
+    fn render_remote_frame(&mut self) {
         let width = self.remote_frame_buffer.width();
         let height = self.remote_frame_buffer.height();
+        Self::advance_square(&mut self.remote_square, width, height);
+
+        let square = self.remote_square;
+        let phase = self.remote_phase;
+        let connected_bias = if self.connected_addr.is_some() {
+            24u8
+        } else {
+            0u8
+        };
         let pixels = self.remote_frame_buffer.make_mut_slice();
 
         for y in 0..height {
             for x in 0..width {
                 let index = (y * width + x) as usize;
-                let horizon = ((y * 255) / height) as u8;
-                let beacon = if (x + phase * 12) % width < width / 8 {
-                    36u8
+                let in_square = x >= square.x as u32
+                    && x < square.x as u32 + square.size
+                    && y >= square.y as u32
+                    && y < square.y as u32 + square.size;
+                let band = (((x / 6) + phase) % 255) as u8;
+                let horizon = ((y * 255) / height.max(1)) as u8;
+                let grid = if x % 80 < 2 || y % 60 < 2 { 10u8 } else { 0u8 };
+
+                pixels[index] = if in_square {
+                    slint::Rgb8Pixel {
+                        r: 232,
+                        g: 62u8.saturating_add(connected_bias / 2),
+                        b: 52,
+                    }
                 } else {
-                    0u8
-                };
-                let grid = if x % 120 < 3 || y % 90 < 3 { 12u8 } else { 0u8 };
-
-                pixels[index] = slint::Rgb8Pixel {
-                    r: 8u8.saturating_add(horizon / 8).saturating_add(grid),
-                    g: 18u8.saturating_add(beacon / 3).saturating_add(grid / 2),
-                    b: 34u8.saturating_add(horizon / 3).saturating_add(beacon),
+                    slint::Rgb8Pixel {
+                        r: 18u8.saturating_add(band / 8).saturating_add(grid / 2),
+                        g: 18u8
+                            .saturating_add(horizon / 7)
+                            .saturating_add(connected_bias / 3),
+                        b: 42u8.saturating_add(band / 3).saturating_add(grid),
+                    }
                 };
             }
         }
 
-        self.telemetry.rx_stats = SankakuStreamStats {
-            bitrate_bps: 0,
-            packet_loss_ratio: 0.0,
-            jitter_us: 0,
-            width: 0,
-            height: 0,
-        };
-        self.remote_tick = self.remote_tick.wrapping_add(1);
-    }
-
-    fn mirror_remote_from_frame(&mut self, frame: &VideoFrame) {
-        let width = self.remote_frame_buffer.width() as usize;
-        let height = self.remote_frame_buffer.height() as usize;
-        let bytes = self.remote_frame_buffer.make_mut_bytes();
-
-        for y in 0..height {
-            for x in 0..width {
-                let remote_index = (y * width + x) * 3;
-                let source_x = x * frame.width as usize / width.max(1);
-                let source_y = y * frame.height as usize / height.max(1);
-                let source_index = (source_y * frame.width as usize + source_x) * 3;
-                let source = frame.payload.get(source_index..source_index + 3);
-
-                if let Some(source) = source {
-                    bytes[remote_index] = source[2].saturating_add(8);
-                    bytes[remote_index + 1] = source[1].saturating_add(6);
-                    bytes[remote_index + 2] = source[0];
-                }
-            }
-        }
-
-        self.telemetry.rx_stats = SankakuStreamStats {
-            bitrate_bps: self.range_u32(1_250_000, 2_350_000),
-            packet_loss_ratio: self.range_f32(0.0010, 0.0180),
-            jitter_us: self.range_u32(4_000, 24_000),
-            width: frame.width,
-            height: frame.height,
-        };
+        self.remote_phase = self.remote_phase.wrapping_add(1);
     }
 
     fn timestamp_us() -> u64 {
@@ -188,7 +266,7 @@ impl SankakuStreamProvider {
     }
 }
 
-impl MediaProvider for SankakuStreamProvider {
+impl MediaProvider for MockDuplexSession {
     fn connect(&mut self, addr: &str) -> Result<(), String> {
         let trimmed = addr.trim();
         if trimmed.is_empty() {
@@ -202,14 +280,33 @@ impl MediaProvider for SankakuStreamProvider {
         Ok(())
     }
 
+    fn local_receiver_port(&self) -> u16 {
+        self.receiver_socket
+            .local_addr()
+            .expect("receiver socket should expose a local address")
+            .port()
+    }
+
     fn poll_frame(&mut self) -> Option<slint::Image> {
-        if self.connected_addr.is_none() {
-            self.render_waiting_remote();
+        self.render_remote_frame();
+
+        self.telemetry.rx_stats = if self.connected_addr.is_some() {
+            SankakuStreamStats {
+                bitrate_bps: self.range_u32(1_350_000, 2_250_000),
+                packet_loss_ratio: self.range_f32(0.0010, 0.0140),
+                jitter_us: self.range_u32(5_000, 22_000),
+                latency_ms: self.range_u32(28, 96),
+                width: self.remote_frame_buffer.width(),
+                height: self.remote_frame_buffer.height(),
+            }
         } else {
-            self.remote_tick = self.remote_tick.wrapping_add(1);
-            self.telemetry.rx_stats.jitter_us = self.range_u32(5_000, 22_000);
-            self.telemetry.rx_stats.packet_loss_ratio = self.range_f32(0.0010, 0.0140);
-        }
+            SankakuStreamStats::default()
+        };
+        self.telemetry.path_rtt_ms = if self.connected_addr.is_some() {
+            self.range_u32(24, 78) as u64
+        } else {
+            0
+        };
 
         Some(slint::Image::from_rgb8(self.remote_frame_buffer.clone()))
     }
@@ -220,52 +317,46 @@ impl MediaProvider for SankakuStreamProvider {
 
     fn capture_local_frame(&mut self) -> Option<VideoFrame> {
         if !self.video_enabled {
-            self.telemetry.tx_stats = SankakuStreamStats {
-                bitrate_bps: 0,
-                packet_loss_ratio: 0.0,
-                jitter_us: 0,
-                width: 0,
-                height: 0,
-            };
+            self.telemetry.tx_stats = SankakuStreamStats::default();
+            self.telemetry.udp_tx_dropped = 0;
             self.render_local_disabled_frame();
             return None;
         }
 
-        self.render_local_capture_frame();
+        self.render_local_frame();
         let payload = self.local_frame_buffer.as_bytes().to_vec();
 
-        Some(VideoFrame {
-            timestamp_us: Self::timestamp_us(),
-            keyframe: self.capture_tick % 60 == 0,
-            codec: VIDEO_CODEC_HEVC,
-            width: self.local_frame_buffer.width(),
-            height: self.local_frame_buffer.height(),
-            payload,
-        })
+        Some(
+            VideoFrame::nal_with_codec(
+                payload,
+                Self::timestamp_us(),
+                self.local_phase % 45 == 0,
+                VIDEO_CODEC_HEVC,
+            )
+            .with_dimensions(
+                self.local_frame_buffer.width(),
+                self.local_frame_buffer.height(),
+            ),
+        )
     }
 
     fn broadcast_frame(&mut self, frame: VideoFrame) {
-        let frames_per_second = 30u32;
-        let keyframe_overhead = if frame.keyframe { 1.12 } else { 1.0 };
-        let bitrate_bps = ((frame
-            .payload
-            .len()
-            .saturating_mul(frames_per_second as usize)
-            .saturating_mul(8) as f32)
-            * keyframe_overhead) as u32;
-        self.remote_tick = self
-            .remote_tick
-            .wrapping_add((frame.timestamp_us as u32 & 0xF).max(1));
-        self.telemetry.tx_stats = SankakuStreamStats {
-            bitrate_bps,
-            packet_loss_ratio: self.range_f32(0.0005, 0.0090),
-            jitter_us: self.range_u32(2_000, 8_000),
-            width: frame.width,
-            height: frame.height,
-        };
-
         if self.connected_addr.is_some() && frame.codec == VIDEO_CODEC_HEVC {
-            self.mirror_remote_from_frame(&frame);
+            self.telemetry.tx_stats = SankakuStreamStats {
+                bitrate_bps: self.range_u32(1_550_000, 2_550_000),
+                packet_loss_ratio: self.range_f32(0.0005, 0.0090),
+                jitter_us: self.range_u32(2_000, 8_000),
+                latency_ms: 0,
+                width: frame.width,
+                height: frame.height,
+            };
+            self.telemetry.udp_tx_dropped = self
+                .telemetry
+                .udp_tx_dropped
+                .saturating_add(u64::from(self.range_u32(0, 2)));
+        } else {
+            self.telemetry.tx_stats = SankakuStreamStats::default();
+            self.telemetry.udp_tx_dropped = 0;
         }
     }
 
@@ -282,6 +373,92 @@ impl MediaProvider for SankakuStreamProvider {
         if !enabled {
             self.render_local_disabled_frame();
         }
+    }
+}
+
+struct ReceiverLoopState {
+    bound_port: u16,
+    accepted_peer: Option<SocketAddr>,
+}
+
+struct SenderLoopState {
+    target_peer: Option<SocketAddr>,
+}
+
+struct SessionManager {
+    media_provider: Box<dyn MediaProvider>,
+    discovery_manager: Option<DiscoveryManager>,
+    connected_peer: Option<Peer>,
+    receiver_loop: ReceiverLoopState,
+    sender_loop: SenderLoopState,
+}
+
+impl SessionManager {
+    fn new(media_provider: Box<dyn MediaProvider>) -> Self {
+        let bound_port = media_provider.local_receiver_port();
+        let discovery_manager = DiscoveryManager::new(
+            bound_port,
+            local_instance_id(),
+            vec![
+                "Kagami-Full-Duplex".to_owned(),
+                "Kagami-Audio".to_owned(),
+                "Kagami-Video".to_owned(),
+            ],
+        )
+        .ok();
+
+        Self {
+            media_provider,
+            discovery_manager,
+            connected_peer: None,
+            receiver_loop: ReceiverLoopState {
+                bound_port,
+                accepted_peer: None,
+            },
+            sender_loop: SenderLoopState { target_peer: None },
+        }
+    }
+
+    fn peers_snapshot(&self) -> Vec<Peer> {
+        self.discovery_manager
+            .as_ref()
+            .map_or_else(Vec::new, DiscoveryManager::peers_snapshot)
+    }
+
+    fn connect_peer(&mut self, peer: Peer) -> Result<(), String> {
+        self.media_provider.connect(&peer.addr.to_string())?;
+        self.sender_loop.target_peer = Some(peer.addr);
+        self.receiver_loop.accepted_peer = Some(peer.addr);
+        self.connected_peer = Some(peer);
+        Ok(())
+    }
+
+    fn poll_remote_frame(&mut self) -> Option<slint::Image> {
+        let _receiver_port = self.receiver_loop.bound_port;
+        let _accepted_peer = self.receiver_loop.accepted_peer;
+        self.media_provider.poll_frame()
+    }
+
+    fn poll_local_preview(&mut self) -> Option<slint::Image> {
+        self.media_provider.poll_local_preview()
+    }
+
+    fn capture_and_broadcast(&mut self) {
+        if let Some(frame) = self.media_provider.capture_local_frame() {
+            self.media_provider.broadcast_frame(frame);
+        }
+    }
+
+    fn telemetry(&self) -> SankakuTelemetry {
+        self.media_provider.get_telemetry()
+    }
+
+    fn set_audio_muted(&mut self, muted: bool) {
+        self.media_provider.set_audio_muted(muted);
+    }
+
+    fn set_video_enabled(&mut self, enabled: bool) {
+        self.media_provider.set_video_enabled(enabled);
     }
 }
 
@@ -308,18 +485,24 @@ fn update_peer_model(
 }
 
 fn apply_telemetry(window: &MainWindow, telemetry: SankakuTelemetry) {
-    window.set_tx_bitrate(
+    window.set_upload_bitrate(
         format!("{:.2}", telemetry.tx_stats.bitrate_bps as f32 / 1_000_000.0).into(),
     );
-    window.set_tx_loss(format!("{:.2}", telemetry.tx_stats.packet_loss_ratio * 100.0).into());
-    window.set_rx_jitter(format!("{:.1}", telemetry.rx_stats.jitter_us as f32 / 1_000.0).into());
-    window.set_rx_resolution(
-        if telemetry.rx_stats.width == 0 || telemetry.rx_stats.height == 0 {
-            "Waiting".into()
-        } else {
-            format!("{}x{}", telemetry.rx_stats.width, telemetry.rx_stats.height).into()
-        },
+    window.set_upload_loss(format!("{:.2}", telemetry.tx_stats.packet_loss_ratio * 100.0).into());
+    window.set_download_jitter(
+        format!("{:.1}", telemetry.rx_stats.jitter_us as f32 / 1_000.0).into(),
     );
+    window.set_download_latency(if telemetry.rx_stats.latency_ms == 0 {
+        "Waiting".into()
+    } else {
+        format!("{}ms", telemetry.rx_stats.latency_ms).into()
+    });
+    window.set_path_rtt_ms(if telemetry.path_rtt_ms == 0 {
+        "Waiting".into()
+    } else {
+        format!("{}ms", telemetry.path_rtt_ms).into()
+    });
+    window.set_udp_tx_dropped(telemetry.udp_tx_dropped.to_string().into());
 }
 
 fn main() -> Result<(), slint::PlatformError> {
@@ -328,42 +511,34 @@ fn main() -> Result<(), slint::PlatformError> {
         nezumi_ffi::init();
     }
 
-    let mut discovery_engine = DiscoveryEngine::new(
-        DEFAULT_MEDIA_PORT,
-        vec![
-            "Kagami-Full-Duplex".to_owned(),
-            "Kagami-Audio".to_owned(),
-            "Kagami-Video".to_owned(),
-        ],
-    );
-    let _ = discovery_engine.start();
-    let discovery_engine = Rc::new(discovery_engine);
-
     let main_window = MainWindow::new()?;
-    let media_provider: Rc<RefCell<Box<dyn MediaProvider>>> =
-        Rc::new(RefCell::new(Box::new(SankakuStreamProvider::new())));
+    let session_manager = Rc::new(RefCell::new(SessionManager::new(Box::new(
+        MockDuplexSession::new(),
+    ))));
     let peer_cache = Rc::new(RefCell::new(Vec::<Peer>::new()));
     let peer_model = Rc::new(slint::VecModel::<slint::SharedString>::default());
-    main_window.set_peers(peer_model.clone().into());
+    main_window.set_discovered_peers(peer_model.clone().into());
+    main_window.set_selected_peer_index(-1);
 
     {
-        let mut provider = media_provider.borrow_mut();
-        if let Some(remote) = provider.poll_frame() {
+        let mut session = session_manager.borrow_mut();
+        session.capture_and_broadcast();
+        if let Some(remote) = session.poll_remote_frame() {
             main_window.set_remote_video_frame(remote);
         }
-        if let Some(local) = provider.poll_local_preview() {
+        if let Some(local) = session.poll_local_preview() {
             main_window.set_local_video_frame(local);
         }
-        apply_telemetry(&main_window, provider.get_telemetry());
+        apply_telemetry(&main_window, session.telemetry());
     }
     update_peer_model(
         &main_window,
         peer_model.as_ref(),
         peer_cache.as_ref(),
-        discovery_engine.peers_snapshot(),
+        session_manager.borrow().peers_snapshot(),
     );
 
-    let connect_provider = Rc::clone(&media_provider);
+    let connect_session = Rc::clone(&session_manager);
     let connect_window = main_window.as_weak();
     let connect_peer_cache = Rc::clone(&peer_cache);
     main_window.on_connect_requested(move || {
@@ -380,58 +555,41 @@ fn main() -> Result<(), slint::PlatformError> {
             return;
         };
 
-        let mut provider = connect_provider.borrow_mut();
-        if provider.connect(&peer.addr.to_string()).is_ok() {
-            apply_telemetry(&window, provider.get_telemetry());
+        let mut session = connect_session.borrow_mut();
+        if session.connect_peer(peer.clone()).is_ok() {
+            apply_telemetry(&window, session.telemetry());
         }
     });
 
-    let audio_provider = Rc::clone(&media_provider);
+    let audio_session = Rc::clone(&session_manager);
     main_window.on_audio_muted_toggled(move |muted| {
-        audio_provider.borrow_mut().set_audio_muted(muted);
+        audio_session.borrow_mut().set_audio_muted(muted);
     });
 
-    let video_provider = Rc::clone(&media_provider);
+    let video_session = Rc::clone(&session_manager);
     main_window.on_video_stopped_toggled(move |stopped| {
-        video_provider.borrow_mut().set_video_enabled(!stopped);
+        video_session.borrow_mut().set_video_enabled(!stopped);
     });
 
-    let capture_timer = slint::Timer::default();
-    let capture_provider = Rc::clone(&media_provider);
-    let capture_window = main_window.as_weak();
-    capture_timer.start(
-        slint::TimerMode::Repeated,
-        Duration::from_millis(33),
-        move || {
-            let Some(window) = capture_window.upgrade() else {
-                return;
-            };
-            let mut provider = capture_provider.borrow_mut();
-            if let Some(frame) = provider.capture_local_frame() {
-                provider.broadcast_frame(frame);
-            }
-            if let Some(local) = provider.poll_local_preview() {
-                window.set_local_video_frame(local);
-            }
-            apply_telemetry(&window, provider.get_telemetry());
-        },
-    );
-
-    let render_timer = slint::Timer::default();
-    let render_provider = Rc::clone(&media_provider);
-    let render_window = main_window.as_weak();
-    render_timer.start(
+    let media_timer = slint::Timer::default();
+    let media_session = Rc::clone(&session_manager);
+    let media_window = main_window.as_weak();
+    media_timer.start(
         slint::TimerMode::Repeated,
         Duration::from_millis(16),
         move || {
-            let Some(window) = render_window.upgrade() else {
+            let Some(window) = media_window.upgrade() else {
                 return;
             };
-            let mut provider = render_provider.borrow_mut();
-            if let Some(remote) = provider.poll_frame() {
+            let mut session = media_session.borrow_mut();
+            session.capture_and_broadcast();
+            if let Some(local) = session.poll_local_preview() {
+                window.set_local_video_frame(local);
+            }
+            if let Some(remote) = session.poll_remote_frame() {
                 window.set_remote_video_frame(remote);
             }
-            apply_telemetry(&window, provider.get_telemetry());
+            apply_telemetry(&window, session.telemetry());
         },
     );
 
@@ -439,7 +597,7 @@ fn main() -> Result<(), slint::PlatformError> {
     let discovery_window = main_window.as_weak();
     let discovery_model = Rc::clone(&peer_model);
     let discovery_cache = Rc::clone(&peer_cache);
-    let discovery_engine_ref = Rc::clone(&discovery_engine);
+    let discovery_session = Rc::clone(&session_manager);
     discovery_timer.start(
         slint::TimerMode::Repeated,
         Duration::from_millis(750),
@@ -451,7 +609,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 &window,
                 discovery_model.as_ref(),
                 discovery_cache.as_ref(),
-                discovery_engine_ref.peers_snapshot(),
+                discovery_session.borrow().peers_snapshot(),
             );
         },
     );
