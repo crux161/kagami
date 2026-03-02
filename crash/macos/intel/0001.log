@@ -1,0 +1,815 @@
+-------------------------------------
+Translated Report (Full Report Below)
+-------------------------------------
+
+Process:               kagami [3775]
+Path:                  /Users/USER/Documents/*/kagami
+Identifier:            kagami
+Version:               ???
+Code Type:             X86-64 (Native)
+Parent Process:        zsh [674]
+Responsible:           iTerm2 [643]
+User ID:               501
+
+Date/Time:             2026-03-02 15:43:04.7633 -0800
+OS Version:            macOS 15.7.3 (24G419)
+Report Version:        12
+Bridge OS Version:     10.2 (23P2048)
+Anonymous UUID:        4D48307C-083B-1518-3ACA-A9BDEC10360F
+
+Sleep/Wake UUID:       B19902F8-7771-4727-850A-7A5D62F95F75
+
+Time Awake Since Boot: 940 seconds
+Time Since Wake:       435 seconds
+
+System Integrity Protection: enabled
+
+Crashed Thread:        0  main  Dispatch queue: com.apple.main-thread
+
+Exception Type:        EXC_BAD_ACCESS (SIGSEGV)
+Exception Codes:       KERN_INVALID_ADDRESS at 0x000000000000244c
+Exception Codes:       0x0000000000000001, 0x000000000000244c
+
+Termination Reason:    Namespace SIGNAL, Code 11 Segmentation fault: 11
+Terminating Process:   exc handler [3775]
+
+VM Region Info: 0x244c is not in any region.  Bytes before following region: 4298169268
+      REGION TYPE                    START - END         [ VSIZE] PRT/MAX SHRMOD  REGION DETAIL
+      UNUSED SPACE AT START
+--->  
+      __TEXT                      100310000-100c5f000    [ 9532K] r-x/r-x SM=COW  target/release/kagami
+
+Kernel Triage:
+VM - (arg = 0x3) mach_vm_allocate_kernel failed within call to vm_map_enter
+VM - (arg = 0x3) mach_vm_allocate_kernel failed within call to vm_map_enter
+VM - (arg = 0x3) mach_vm_allocate_kernel failed within call to vm_map_enter
+VM - (arg = 0x3) mach_vm_allocate_kernel failed within call to vm_map_enter
+VM - (arg = 0x3) mach_vm_allocate_kernel failed within call to vm_map_enter
+
+
+Thread 0 Crashed:: main Dispatch queue: com.apple.main-thread
+0   libsankaku.dylib              	       0x10117524d sankaku_stream_create + 269
+1   kagami                        	       0x10038a138 _$LT$kagami..RealDuplexSession$u20$as$u20$kagami..MediaProvider$GT$::connect::h437538c8c98adbef + 440
+2   kagami                        	       0x10038a44f kagami::SessionManager::connect_peer::hc94e1913d75a0ed7 + 159
+3   kagami                        	       0x100365c3a i_slint_core::callbacks::Callback$LT$Arg$C$Ret$GT$::set_handler::_$u7b$$u7b$closure$u7d$$u7d$::h732237894d1cf1d7 + 474
+4   kagami                        	       0x100326615 core::ops::function::FnOnce::call_once::h58a46cc1f5a665fa + 69
+5   kagami                        	       0x10032eb35 core::ops::function::FnOnce::call_once::haecfff1450a25de5 + 69
+6   kagami                        	       0x1006b477a i_slint_core::callbacks::Callback$LT$Arg$C$Ret$GT$::call::h404b6d8a5754c115 + 42
+7   kagami                        	       0x1006d29fb _$LT$i_slint_core..items..input_items..TouchArea$u20$as$u20$i_slint_core..items..Item_vtable_mod..Item$GT$::input_event::h9276d002be155aab + 555
+8   kagami                        	       0x1006c2d6d i_slint_core::input::handle_mouse_grab::h328674192953c96f + 461
+9   kagami                        	       0x1006d9f74 i_slint_core::window::WindowInner::process_mouse_input::h3a6ac77e9172e361 + 2228
+10  kagami                        	       0x10046bb3d _$LT$i_slint_backend_winit..event_loop..EventLoopState$u20$as$u20$winit..application..ApplicationHandler$LT$i_slint_backend_winit..SlintEvent$GT$$GT$::window_event::h1ecd398d09534d71 + 3933
+11  kagami                        	       0x1004d706e winit::platform::pump_events::EventLoopExtPumpEvents::pump_app_events::_$u7b$$u7b$closure$u7d$$u7d$::hdad3c1f813f10a07 + 382
+12  kagami                        	       0x1004d667c winit::platform_impl::macos::event_loop::map_user_event::_$u7b$$u7b$closure$u7d$$u7d$::h5cfdcfbe858c5232 + 316
+13  kagami                        	       0x1006547a2 winit::platform_impl::macos::event_handler::EventHandler::handle_event::h4f8625299f4d70cd + 98
+14  kagami                        	       0x10064a22d winit::platform_impl::macos::app_state::ApplicationDelegate::maybe_queue_event::h7ba553dd911fafd7 + 301
+15  kagami                        	       0x10064063f winit::platform_impl::macos::view::WinitView::queue_event::h192abf3f65ab79b9 + 95
+16  kagami                        	       0x1006405a9 winit::platform_impl::macos::view::WinitView::mouse_click::haf776b7d0beefbab + 281
+17  kagami                        	       0x1006490e0 winit::platform_impl::macos::view::WinitView::mouse_up::h4383e7206b6fa979 + 144
+18  AppKit                        	    0x7ff810962bec _routeMouseUpEvent + 136
+19  AppKit                        	    0x7ff80fdaa33d -[NSWindow(NSEventRouting) _reallySendEvent:isDelayedEvent:] + 471
+20  AppKit                        	    0x7ff80fda9f45 -[NSWindow(NSEventRouting) sendEvent:] + 344
+21  AppKit                        	    0x7ff8106df5c9 -[NSApplication(NSEventRouting) sendEvent:] + 1905
+22  kagami                        	       0x10064c050 winit::platform_impl::macos::app::send_event::hb1f5abaa6d90ed14 + 560
+23  AppKit                        	    0x7ff810242c27 -[NSApplication _handleEvent:] + 65
+24  AppKit                        	    0x7ff80fc43ed5 -[NSApplication run] + 654
+25  kagami                        	       0x1004d6a99 winit::platform_impl::macos::event_loop::EventLoop$LT$T$GT$::run_on_demand::hd4bc50634063da78 + 281
+26  kagami                        	       0x10046cf2c i_slint_backend_winit::event_loop::EventLoopState::run::hc29709594c0c0c65 + 284
+27  kagami                        	       0x10049d33e _$LT$i_slint_backend_winit..Backend$u20$as$u20$i_slint_core..platform..Platform$GT$::run_event_loop::h766f5ff8c337c637 + 302
+28  kagami                        	       0x100467709 std::thread::local::LocalKey$LT$T$GT$::with::h2e998d801214f6a2 + 57
+29  kagami                        	       0x100467570 slint::run_event_loop::he1b872d107fa9406 + 32
+30  kagami                        	       0x10031270e _$LT$kagami..slint_generatedMainWindow..MainWindow$u20$as$u20$i_slint_core..api..ComponentHandle$GT$::run::hab086837e393d0e0 + 142
+31  kagami                        	       0x10038c9c3 kagami::main::haf9b6b962a3ebed3 + 5731
+32  kagami                        	       0x10038d8ab std::sys::backtrace::__rust_begin_short_backtrace::h484f584cd78b0f3f + 11
+33  kagami                        	       0x10039fab3 std::rt::lang_start::_$u7b$$u7b$closure$u7d$$u7d$::hdbde814b43f79e35 + 35
+34  kagami                        	       0x100a5096b std::rt::lang_start_internal::h3867f272f8813525 + 875
+35  kagami                        	       0x10038d88c main + 44
+36  dyld                          	    0x7ff80bd62530 start + 3056
+
+Thread 1:
+0   libsystem_pthread.dylib       	    0x7ff80c103834 start_wqthread + 0
+
+Thread 2:
+0   libsystem_pthread.dylib       	    0x7ff80c103834 start_wqthread + 0
+
+Thread 3:: com.apple.coremedia.sharedRootQueue.47
+0   libsystem_kernel.dylib        	    0x7ff80c0c5ade semaphore_timedwait_trap + 10
+1   libdispatch.dylib             	    0x7ff80bf8ac5b _dispatch_sema4_timedwait + 52
+2   libdispatch.dylib             	    0x7ff80bf5e09e _dispatch_semaphore_wait_slow + 58
+3   libdispatch.dylib             	    0x7ff80bf6b9b8 _dispatch_worker_thread + 322
+4   libsystem_pthread.dylib       	    0x7ff80c107e05 _pthread_start + 115
+5   libsystem_pthread.dylib       	    0x7ff80c103857 thread_start + 15
+
+Thread 4:: com.apple.coremedia.sharedRootQueue.47
+0   libsystem_kernel.dylib        	    0x7ff80c0c5ade semaphore_timedwait_trap + 10
+1   libdispatch.dylib             	    0x7ff80bf8ac5b _dispatch_sema4_timedwait + 52
+2   libdispatch.dylib             	    0x7ff80bf5e09e _dispatch_semaphore_wait_slow + 58
+3   libdispatch.dylib             	    0x7ff80bf6b9b8 _dispatch_worker_thread + 322
+4   libsystem_pthread.dylib       	    0x7ff80c107e05 _pthread_start + 115
+5   libsystem_pthread.dylib       	    0x7ff80c103857 thread_start + 15
+
+Thread 5:: caulk.messenger.shared:17
+0   libsystem_kernel.dylib        	    0x7ff80c0c5ac6 semaphore_wait_trap + 10
+1   caulk                         	    0x7ff8177faa42 caulk::semaphore::timed_wait(double) + 158
+2   caulk                         	    0x7ff8177fa964 caulk::concurrent::details::worker_thread::run() + 30
+3   caulk                         	    0x7ff8177fa6a8 void* caulk::thread_proxy<std::__1::tuple<caulk::thread::attributes, void (caulk::concurrent::details::worker_thread::*)(), std::__1::tuple<caulk::concurrent::details::worker_thread*>>>(void*) + 41
+4   libsystem_pthread.dylib       	    0x7ff80c107e05 _pthread_start + 115
+5   libsystem_pthread.dylib       	    0x7ff80c103857 thread_start + 15
+
+Thread 6:: caulk.messenger.shared:high
+0   libsystem_kernel.dylib        	    0x7ff80c0c5ac6 semaphore_wait_trap + 10
+1   caulk                         	    0x7ff8177faa42 caulk::semaphore::timed_wait(double) + 158
+2   caulk                         	    0x7ff8177fa964 caulk::concurrent::details::worker_thread::run() + 30
+3   caulk                         	    0x7ff8177fa6a8 void* caulk::thread_proxy<std::__1::tuple<caulk::thread::attributes, void (caulk::concurrent::details::worker_thread::*)(), std::__1::tuple<caulk::concurrent::details::worker_thread*>>>(void*) + 41
+4   libsystem_pthread.dylib       	    0x7ff80c107e05 _pthread_start + 115
+5   libsystem_pthread.dylib       	    0x7ff80c103857 thread_start + 15
+
+Thread 7:
+0   libsystem_kernel.dylib        	    0x7ff80c0c86f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80c1082ae _pthread_cond_wait + 988
+2   CoreMedia                     	    0x7ff817839e9d WaitOnConditionTimed + 78
+3   CoreMedia                     	    0x7ff8178269f8 FigSemaphoreWaitRelative + 136
+4   CoreMediaIO                   	    0x7ff81ea12db1 CMIO::Thread::SignaledThread::ThreadLoop() + 121
+5   CoreMediaIO                   	    0x7ff81ea12d08 CMIO::Thread::SignaledThread::WorkQueuedThreadCallback(void*) + 206
+6   CoreMedia                     	    0x7ff817839b5d figThreadMain + 237
+7   libsystem_pthread.dylib       	    0x7ff80c107e05 _pthread_start + 115
+8   libsystem_pthread.dylib       	    0x7ff80c103857 thread_start + 15
+
+Thread 8:: mDNS_daemon
+0   libsystem_kernel.dylib        	    0x7ff80c0ca822 kevent + 10
+1   kagami                        	       0x100a45741 mio::poll::Poll::poll::he7443cd9b61fca4a + 97
+2   kagami                        	       0x1009fbd42 mdns_sd::service_daemon::Zeroconf::run::hb5f45c55c8231306 + 2482
+3   kagami                        	       0x1009da1dd mdns_sd::service_daemon::ServiceDaemon::daemon_thread::h6335c8a5d660bf67 + 6877
+4   kagami                        	       0x100a3b373 std::sys::backtrace::__rust_begin_short_backtrace::hd14cc1d3e5229ab0 + 67
+5   kagami                        	       0x100a428bd core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::hcaab4dd3492c3987 + 285
+6   kagami                        	       0x100a5455b std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd + 395
+7   libsystem_pthread.dylib       	    0x7ff80c107e05 _pthread_start + 115
+8   libsystem_pthread.dylib       	    0x7ff80c103857 thread_start + 15
+
+Thread 9:
+0   libsystem_kernel.dylib        	    0x7ff80c0c5ac6 semaphore_wait_trap + 10
+1   libdispatch.dylib             	    0x7ff80bf5dc8f _dispatch_sema4_wait + 16
+2   libdispatch.dylib             	    0x7ff80bf5e0c6 _dispatch_semaphore_wait_slow + 98
+3   kagami                        	       0x100a56740 std::thread::functions::park::h6554cad1c7c64841 + 80
+4   kagami                        	       0x100372c48 flume::Receiver$LT$T$GT$::recv::h30ddd17d45a4f4c5 + 1064
+5   kagami                        	       0x10038d95f std::sys::backtrace::__rust_begin_short_backtrace::hd45f3929ad560b02 + 95
+6   kagami                        	       0x100398d08 core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h27de04f2af860605 + 184
+7   kagami                        	       0x100a5455b std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd + 395
+8   libsystem_pthread.dylib       	    0x7ff80c107e05 _pthread_start + 115
+9   libsystem_pthread.dylib       	    0x7ff80c103857 thread_start + 15
+
+Thread 10:
+0   libsystem_pthread.dylib       	    0x7ff80c103834 start_wqthread + 0
+
+Thread 11:: com.apple.NSEventThread
+0   libsystem_kernel.dylib        	    0x7ff80c0c5b4a mach_msg2_trap + 10
+1   libsystem_kernel.dylib        	    0x7ff80c0d4704 mach_msg2_internal + 83
+2   libsystem_kernel.dylib        	    0x7ff80c0ccbc3 mach_msg_overwrite + 574
+3   libsystem_kernel.dylib        	    0x7ff80c0c5e3b mach_msg + 19
+4   CoreFoundation                	    0x7ff80c1f1b82 __CFRunLoopServiceMachPort + 145
+5   CoreFoundation                	    0x7ff80c1f05cf __CFRunLoopRun + 1430
+6   CoreFoundation                	    0x7ff80c1efa02 CFRunLoopRunSpecific + 536
+7   AppKit                        	    0x7ff80fda79ff _NSEventThread + 127
+8   libsystem_pthread.dylib       	    0x7ff80c107e05 _pthread_start + 115
+9   libsystem_pthread.dylib       	    0x7ff80c103857 thread_start + 15
+
+Thread 12:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff80c0c86f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80c1082ae _pthread_cond_wait + 988
+2   libsankaku.dylib              	       0x1012229fe tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92 + 334
+3   libsankaku.dylib              	       0x1012204c2 tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40 + 322
+4   libsankaku.dylib              	       0x10121e7a2 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9 + 2834
+5   libsankaku.dylib              	       0x1012226de tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680 + 574
+6   libsankaku.dylib              	       0x10121ec49 tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506 + 169
+7   libsankaku.dylib              	       0x10123559d tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209 + 141
+8   libsankaku.dylib              	       0x10122ed80 tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d + 176
+9   libsankaku.dylib              	       0x10122715c tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1 + 492
+10  libsankaku.dylib              	       0x1012348af std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23 + 207
+11  libsankaku.dylib              	       0x101228aec core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b + 220
+12  libsankaku.dylib              	       0x10124d79b std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd + 395
+13  libsystem_pthread.dylib       	    0x7ff80c107e05 _pthread_start + 115
+14  libsystem_pthread.dylib       	    0x7ff80c103857 thread_start + 15
+
+Thread 13:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff80c0c86f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80c1082ae _pthread_cond_wait + 988
+2   libsankaku.dylib              	       0x1012229fe tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92 + 334
+3   libsankaku.dylib              	       0x1012204c2 tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40 + 322
+4   libsankaku.dylib              	       0x10121e7a2 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9 + 2834
+5   libsankaku.dylib              	       0x1012226de tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680 + 574
+6   libsankaku.dylib              	       0x10121ec49 tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506 + 169
+7   libsankaku.dylib              	       0x10123559d tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209 + 141
+8   libsankaku.dylib              	       0x10122ed80 tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d + 176
+9   libsankaku.dylib              	       0x10122715c tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1 + 492
+10  libsankaku.dylib              	       0x1012348af std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23 + 207
+11  libsankaku.dylib              	       0x101228aec core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b + 220
+12  libsankaku.dylib              	       0x10124d79b std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd + 395
+13  libsystem_pthread.dylib       	    0x7ff80c107e05 _pthread_start + 115
+14  libsystem_pthread.dylib       	    0x7ff80c103857 thread_start + 15
+
+Thread 14:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff80c0ca822 kevent + 10
+1   libsankaku.dylib              	       0x1012362f1 mio::poll::Poll::poll::h8e38eb0ff94c6c12 + 97
+2   libsankaku.dylib              	       0x10122a88e tokio::runtime::io::driver::Driver::turn::h170094c85703b104 + 158
+3   libsankaku.dylib              	       0x10121af59 tokio::runtime::time::Driver::park_internal::h8f7ef4cd681b723f + 665
+4   libsankaku.dylib              	       0x10122045c tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40 + 220
+5   libsankaku.dylib              	       0x10121e7a2 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9 + 2834
+6   libsankaku.dylib              	       0x1012226de tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680 + 574
+7   libsankaku.dylib              	       0x10121ec49 tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506 + 169
+8   libsankaku.dylib              	       0x10123559d tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209 + 141
+9   libsankaku.dylib              	       0x10122ed80 tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d + 176
+10  libsankaku.dylib              	       0x10122715c tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1 + 492
+11  libsankaku.dylib              	       0x1012348af std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23 + 207
+12  libsankaku.dylib              	       0x101228aec core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b + 220
+13  libsankaku.dylib              	       0x10124d79b std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd + 395
+14  libsystem_pthread.dylib       	    0x7ff80c107e05 _pthread_start + 115
+15  libsystem_pthread.dylib       	    0x7ff80c103857 thread_start + 15
+
+Thread 15:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff80c0c86f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80c1082ae _pthread_cond_wait + 988
+2   libsankaku.dylib              	       0x1012229fe tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92 + 334
+3   libsankaku.dylib              	       0x1012204c2 tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40 + 322
+4   libsankaku.dylib              	       0x10121e7a2 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9 + 2834
+5   libsankaku.dylib              	       0x1012226de tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680 + 574
+6   libsankaku.dylib              	       0x10121ec49 tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506 + 169
+7   libsankaku.dylib              	       0x10123559d tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209 + 141
+8   libsankaku.dylib              	       0x10122ed80 tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d + 176
+9   libsankaku.dylib              	       0x10122715c tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1 + 492
+10  libsankaku.dylib              	       0x1012348af std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23 + 207
+11  libsankaku.dylib              	       0x101228aec core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b + 220
+12  libsankaku.dylib              	       0x10124d79b std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd + 395
+13  libsystem_pthread.dylib       	    0x7ff80c107e05 _pthread_start + 115
+14  libsystem_pthread.dylib       	    0x7ff80c103857 thread_start + 15
+
+Thread 16:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff80c0c86f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80c1082ae _pthread_cond_wait + 988
+2   libsankaku.dylib              	       0x1012229fe tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92 + 334
+3   libsankaku.dylib              	       0x1012204c2 tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40 + 322
+4   libsankaku.dylib              	       0x10121e7a2 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9 + 2834
+5   libsankaku.dylib              	       0x1012226de tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680 + 574
+6   libsankaku.dylib              	       0x10121ec49 tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506 + 169
+7   libsankaku.dylib              	       0x10123559d tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209 + 141
+8   libsankaku.dylib              	       0x10122ed80 tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d + 176
+9   libsankaku.dylib              	       0x10122715c tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1 + 492
+10  libsankaku.dylib              	       0x1012348af std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23 + 207
+11  libsankaku.dylib              	       0x101228aec core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b + 220
+12  libsankaku.dylib              	       0x10124d79b std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd + 395
+13  libsystem_pthread.dylib       	    0x7ff80c107e05 _pthread_start + 115
+14  libsystem_pthread.dylib       	    0x7ff80c103857 thread_start + 15
+
+Thread 17:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff80c0c86f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80c1082ae _pthread_cond_wait + 988
+2   libsankaku.dylib              	       0x1012229fe tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92 + 334
+3   libsankaku.dylib              	       0x1012204c2 tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40 + 322
+4   libsankaku.dylib              	       0x10121e7a2 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9 + 2834
+5   libsankaku.dylib              	       0x1012226de tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680 + 574
+6   libsankaku.dylib              	       0x10121ec49 tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506 + 169
+7   libsankaku.dylib              	       0x10123559d tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209 + 141
+8   libsankaku.dylib              	       0x10122ed80 tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d + 176
+9   libsankaku.dylib              	       0x10122715c tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1 + 492
+10  libsankaku.dylib              	       0x1012348af std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23 + 207
+11  libsankaku.dylib              	       0x101228aec core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b + 220
+12  libsankaku.dylib              	       0x10124d79b std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd + 395
+13  libsystem_pthread.dylib       	    0x7ff80c107e05 _pthread_start + 115
+14  libsystem_pthread.dylib       	    0x7ff80c103857 thread_start + 15
+
+Thread 18:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff80c0c86f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80c1082ae _pthread_cond_wait + 988
+2   libsankaku.dylib              	       0x1012229fe tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92 + 334
+3   libsankaku.dylib              	       0x1012204c2 tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40 + 322
+4   libsankaku.dylib              	       0x10121e7a2 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9 + 2834
+5   libsankaku.dylib              	       0x1012226de tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680 + 574
+6   libsankaku.dylib              	       0x10121ec49 tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506 + 169
+7   libsankaku.dylib              	       0x10123559d tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209 + 141
+8   libsankaku.dylib              	       0x10122ed80 tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d + 176
+9   libsankaku.dylib              	       0x10122715c tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1 + 492
+10  libsankaku.dylib              	       0x1012348af std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23 + 207
+11  libsankaku.dylib              	       0x101228aec core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b + 220
+12  libsankaku.dylib              	       0x10124d79b std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd + 395
+13  libsystem_pthread.dylib       	    0x7ff80c107e05 _pthread_start + 115
+14  libsystem_pthread.dylib       	    0x7ff80c103857 thread_start + 15
+
+Thread 19:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff80c0c86f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80c1082ae _pthread_cond_wait + 988
+2   libsankaku.dylib              	       0x1012229fe tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92 + 334
+3   libsankaku.dylib              	       0x1012204c2 tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40 + 322
+4   libsankaku.dylib              	       0x10121e7a2 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9 + 2834
+5   libsankaku.dylib              	       0x1012226de tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680 + 574
+6   libsankaku.dylib              	       0x10121ec49 tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506 + 169
+7   libsankaku.dylib              	       0x10123559d tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209 + 141
+8   libsankaku.dylib              	       0x10122ed80 tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d + 176
+9   libsankaku.dylib              	       0x10122715c tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1 + 492
+10  libsankaku.dylib              	       0x1012348af std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23 + 207
+11  libsankaku.dylib              	       0x101228aec core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b + 220
+12  libsankaku.dylib              	       0x10124d79b std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd + 395
+13  libsystem_pthread.dylib       	    0x7ff80c107e05 _pthread_start + 115
+14  libsystem_pthread.dylib       	    0x7ff80c103857 thread_start + 15
+
+Thread 20:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff80c0c86f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80c1082ae _pthread_cond_wait + 988
+2   libsankaku.dylib              	       0x1012229fe tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92 + 334
+3   libsankaku.dylib              	       0x1012204c2 tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40 + 322
+4   libsankaku.dylib              	       0x10121e7a2 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9 + 2834
+5   libsankaku.dylib              	       0x1012226de tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680 + 574
+6   libsankaku.dylib              	       0x10121ec49 tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506 + 169
+7   libsankaku.dylib              	       0x10123559d tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209 + 141
+8   libsankaku.dylib              	       0x10122ed80 tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d + 176
+9   libsankaku.dylib              	       0x10122715c tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1 + 492
+10  libsankaku.dylib              	       0x1012348af std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23 + 207
+11  libsankaku.dylib              	       0x101228aec core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b + 220
+12  libsankaku.dylib              	       0x10124d79b std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd + 395
+13  libsystem_pthread.dylib       	    0x7ff80c107e05 _pthread_start + 115
+14  libsystem_pthread.dylib       	    0x7ff80c103857 thread_start + 15
+
+Thread 21:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff80c0c86f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80c1082ae _pthread_cond_wait + 988
+2   libsankaku.dylib              	       0x1012229fe tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92 + 334
+3   libsankaku.dylib              	       0x1012204c2 tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40 + 322
+4   libsankaku.dylib              	       0x10121e7a2 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9 + 2834
+5   libsankaku.dylib              	       0x1012226de tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680 + 574
+6   libsankaku.dylib              	       0x10121ec49 tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506 + 169
+7   libsankaku.dylib              	       0x10123559d tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209 + 141
+8   libsankaku.dylib              	       0x10122ed80 tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d + 176
+9   libsankaku.dylib              	       0x10122715c tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1 + 492
+10  libsankaku.dylib              	       0x1012348af std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23 + 207
+11  libsankaku.dylib              	       0x101228aec core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b + 220
+12  libsankaku.dylib              	       0x10124d79b std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd + 395
+13  libsystem_pthread.dylib       	    0x7ff80c107e05 _pthread_start + 115
+14  libsystem_pthread.dylib       	    0x7ff80c103857 thread_start + 15
+
+Thread 22:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff80c0c86f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80c1082ae _pthread_cond_wait + 988
+2   libsankaku.dylib              	       0x1012229fe tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92 + 334
+3   libsankaku.dylib              	       0x1012204c2 tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40 + 322
+4   libsankaku.dylib              	       0x10121e7a2 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9 + 2834
+5   libsankaku.dylib              	       0x1012226de tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680 + 574
+6   libsankaku.dylib              	       0x10121ec49 tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506 + 169
+7   libsankaku.dylib              	       0x10123559d tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209 + 141
+8   libsankaku.dylib              	       0x10122ed80 tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d + 176
+9   libsankaku.dylib              	       0x10122715c tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1 + 492
+10  libsankaku.dylib              	       0x1012348af std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23 + 207
+11  libsankaku.dylib              	       0x101228aec core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b + 220
+12  libsankaku.dylib              	       0x10124d79b std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd + 395
+13  libsystem_pthread.dylib       	    0x7ff80c107e05 _pthread_start + 115
+14  libsystem_pthread.dylib       	    0x7ff80c103857 thread_start + 15
+
+Thread 23:: tokio-runtime-worker
+0   libsystem_kernel.dylib        	    0x7ff80c0c86f6 __psynch_cvwait + 10
+1   libsystem_pthread.dylib       	    0x7ff80c1082ae _pthread_cond_wait + 988
+2   libsankaku.dylib              	       0x1012229fe tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92 + 334
+3   libsankaku.dylib              	       0x1012204c2 tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40 + 322
+4   libsankaku.dylib              	       0x10121e7a2 tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9 + 2834
+5   libsankaku.dylib              	       0x1012226de tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680 + 574
+6   libsankaku.dylib              	       0x10121ec49 tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506 + 169
+7   libsankaku.dylib              	       0x10123559d tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209 + 141
+8   libsankaku.dylib              	       0x10122ed80 tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d + 176
+9   libsankaku.dylib              	       0x10122715c tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1 + 492
+10  libsankaku.dylib              	       0x1012348af std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23 + 207
+11  libsankaku.dylib              	       0x101228aec core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b + 220
+12  libsankaku.dylib              	       0x10124d79b std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd + 395
+13  libsystem_pthread.dylib       	    0x7ff80c107e05 _pthread_start + 115
+14  libsystem_pthread.dylib       	    0x7ff80c103857 thread_start + 15
+
+
+Thread 0 crashed with X86 Thread State (64-bit):
+  rax: 0x00000000d5a207fb  rbx: 0x000000000000244c  rcx: 0x00000000d5a207fb  rdx: 0x0000000000000000
+  rdi: 0x0000000000000100  rsi: 0x0000000000002880  rbp: 0x00007ff7bfbed280  rsp: 0x00007ff7bfbecb00
+   r8: 0x00000000d5c208a3   r9: 0x00000000000000ff  r10: 0x00000000d5c00000  r11: 0x00000000000007fb
+  r12: 0x0000600002745420  r13: 0x8000000000000000  r14: 0x0000000000000002  r15: 0x00006000010dc160
+  rip: 0x000000010117524d  rfl: 0x0000000000010202  cr2: 0x000000000000244c
+  
+Logical CPU:     0
+Error Code:      0x00000004 (no mapping for user data read)
+Trap Number:     14
+
+Thread 0 instruction stream:
+  48 8d bd f0 fc ff ff e8-47 dd ff ff e9 ea 00 00  H.......G.......
+  00 48 8d bd 78 ff ff ff-48 8d b5 b0 fa ff ff b9  .H..x...H.......
+  0b 00 00 00 f3 48 a5 48-8d bd f0 fc ff ff e8 20  .....H.H....... 
+  dd ff ff 48 85 db 0f 84-b3 00 00 00 45 85 f6 0f  ...H........E...
+  84 aa 00 00 00 41 83 fe-01 75 15 f3 0f 7e 03 66  .....A...u...~.f
+  0f 73 f8 08 66 0f 7f 45-d0 be 08 00 00 00 eb 24  .s..f..E.......$
+ [f3]0f 6f 03 66 0f 7f 45-d0 48 89 de 48 83 c6 10  ..o.f..E.H..H...	<==
+  48 8d bd 30 ff ff ff b9-09 00 00 00 f3 48 a5 be  H..0.........H..
+  58 00 00 00 ba 08 00 00-00 48 89 df e8 f2 01 01  X........H......
+  00 0f 28 45 d0 0f 29 85-b0 fa ff ff 48 8d bd c0  ..(E..).....H...
+  fa ff ff 48 8d b5 30 ff-ff ff b9 09 00 00 00 f3  ...H..0.........
+  48 a5 c6 85 60 fc ff ff-00 48 8d 0d 3b 25 16 00  H...`....H..;%..
+
+Binary Images:
+       0x100310000 -        0x100c5efff kagami (*) <308f4f18-3315-3042-9786-f10db21147ca> */kagami
+       0x101141000 -        0x1012d5fff libsankaku.dylib (*) <1e307008-67d2-35dd-bb6b-5e958bd74c4b> /Users/USER/Documents/*/libsankaku.dylib
+       0x1055da000 -        0x10561cfff com.apple.cmio.DAL.VDC-4 (810.0) <e4da305d-e9aa-34ba-ae84-3b56b63daa69> /System/Library/Frameworks/CoreMediaIO.framework/Versions/A/Resources/VDC.plugin/Contents/MacOS/VDC
+       0x105cc3000 -        0x105e17fff com.apple.CMIOBaseUnits (1000.0) <d0d9f76d-c8cb-399d-a27d-728bf1d02493> /System/Library/Frameworks/CoreMediaIO.framework/Versions/A/Resources/BaseUnits/CMIOBaseUnits.bundle/Contents/MacOS/CMIOBaseUnits
+       0x105b6f000 -        0x105c23fff com.apple.CMIOUnits (1000.0) <74b91ecb-85ab-304b-be1a-76cef2b53d1e> /System/Library/Frameworks/CoreMediaIO.framework/Versions/A/Resources/CMIOUnits.bundle/Contents/MacOS/CMIOUnits
+       0x107eb0000 -        0x108884fff com.apple.audio.codecs.Components (7.0) <771b2d53-8bb3-3f3a-abd3-2c366d6df146> /System/Library/Components/AudioCodecs.component/Contents/MacOS/AudioCodecs
+       0x10a32d000 -        0x10bb8afff com.apple.AppleIntelKBLGraphicsVADriver (23.7.4) <a821cbf6-22c9-3c9a-98ef-290c90c5bbeb> /System/Library/Extensions/AppleIntelKBLGraphicsVADriver.bundle/Contents/MacOS/AppleIntelKBLGraphicsVADriver
+       0x105cb3000 -        0x105cb7fff com.apple.AppleIntelCFLGraphicsVAME (23.7.4) <e2924182-3337-3534-962b-a1ccdf2a8596> /System/Library/Extensions/AppleIntelCFLGraphicsVAME.bundle/Contents/MacOS/AppleIntelCFLGraphicsVAME
+       0x107a4b000 -        0x107b48fff com.apple.AMDRadeonX4000GLDriver (7.0.24) <6c57af6e-4735-3086-a81f-a19269b313f9> /System/Library/Extensions/AMDRadeonX4000GLDriver.bundle/Contents/MacOS/AMDRadeonX4000GLDriver
+       0x107933000 -        0x10793ffff libobjc-trampolines.dylib (*) <72642d3c-0206-38ee-9349-c720aee663ee> /usr/lib/libobjc-trampolines.dylib
+    0x7ff80fc13000 -     0x7ff8111642fb com.apple.AppKit (6.9) <994c93a6-44f3-3281-abea-6b8e97918a5f> /System/Library/Frameworks/AppKit.framework/Versions/C/AppKit
+    0x7ff80bd5c000 -     0x7ff80bdf66c7 dyld (*) <1a622d74-549f-3f53-bd70-412bd11345e8> /usr/lib/dyld
+               0x0 - 0xffffffffffffffff ??? (*) <00000000-0000-0000-0000-000000000000> ???
+    0x7ff80c102000 -     0x7ff80c10dfd7 libsystem_pthread.dylib (*) <a031f066-4daa-3801-9155-88106d874835> /usr/lib/system/libsystem_pthread.dylib
+    0x7ff80c0c5000 -     0x7ff80c101b6f libsystem_kernel.dylib (*) <df27eb28-275e-3046-a421-655ea736be57> /usr/lib/system/libsystem_kernel.dylib
+    0x7ff80bf5b000 -     0x7ff80bfa2339 libdispatch.dylib (*) <6ca6112a-70c8-39a2-8cfa-da2139709d3c> /usr/lib/system/libdispatch.dylib
+    0x7ff8177f9000 -     0x7ff81781cd07 com.apple.audio.caulk (1.0) <a84cc72a-fe0a-3724-a65b-c5b03e47741b> /System/Library/PrivateFrameworks/caulk.framework/Versions/A/caulk
+    0x7ff81781d000 -     0x7ff8179707cc com.apple.CoreMedia (1.0) <1cf9012b-ec54-3813-96c6-f631d9fb8ad8> /System/Library/Frameworks/CoreMedia.framework/Versions/A/CoreMedia
+    0x7ff81e9cd000 -     0x7ff81ead5f1f com.apple.CoreMediaIO (1000.0) <2981613a-36c3-3836-9a36-43c7bfce26f0> /System/Library/Frameworks/CoreMediaIO.framework/Versions/A/CoreMediaIO
+    0x7ff80c176000 -     0x7ff80c62afe2 com.apple.CoreFoundation (6.9) <ec3331d2-fd11-3a69-b1f8-b5afda0cb06d> /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
+
+External Modification Summary:
+  Calls made by other processes targeting this process:
+    task_for_pid: 0
+    thread_create: 0
+    thread_set_state: 0
+  Calls made by this process:
+    task_for_pid: 0
+    thread_create: 0
+    thread_set_state: 0
+  Calls made by all processes on this machine:
+    task_for_pid: 0
+    thread_create: 0
+    thread_set_state: 0
+
+VM Region Summary:
+ReadOnly portion of Libraries: Total=1.3G resident=0K(0%) swapped_out_or_unallocated=1.3G(100%)
+Writable regions: Total=731.7M written=0K(0%) resident=0K(0%) swapped_out=0K(0%) unallocated=731.7M(100%)
+
+                                VIRTUAL   REGION 
+REGION TYPE                        SIZE    COUNT (non-coalesced) 
+===========                     =======  ======= 
+Accelerate framework               128K        1 
+Activity Tracing                   256K        1 
+CG image                            48K        4 
+ColorSync                          260K       32 
+CoreAnimation                      148K       17 
+CoreGraphics                        20K        2 
+CoreMedia memory pool               80K        2 
+CoreUI image data                 1300K       10 
+Foundation                          16K        1 
+IOKit                             15.5M        2 
+Kernel Alloc Once                    8K        1 
+MALLOC                           677.6M      139 
+MALLOC guard page                   32K        8 
+OpenGL GLSL                        128K        2 
+STACK GUARD                         92K       23 
+Stack                             40.7M       24 
+Stack Guard                       56.0M        1 
+VM_ALLOCATE                       12.3M       42 
+VM_ALLOCATE (reserved)             256K        2         reserved VM address space (unallocated)
+__CTF                               824        1 
+__DATA                            36.6M      955 
+__DATA_CONST                     115.6M      968 
+__DATA_DIRTY                      2583K      338 
+__FONT_DATA                        2352        1 
+__GLSLBUILTINS                    5174K        1 
+__INFO_FILTER                         8        1 
+__LINKEDIT                       166.3M       11 
+__OBJC_RO                         61.3M        1 
+__OBJC_RW                         2396K        2 
+__TEXT                             1.2G      987 
+__TPRO_CONST                         16        2 
+mapped file                      226.6M       29 
+shared memory                      800K       19 
+===========                     =======  ======= 
+TOTAL                              2.5G     3630 
+TOTAL, minus reserved VM space     2.5G     3630 
+
+
+
+-----------
+Full Report
+-----------
+
+{"app_name":"kagami","timestamp":"2026-03-02 15:43:06.00 -0800","app_version":"","slice_uuid":"308f4f18-3315-3042-9786-f10db21147ca","build_version":"","platform":1,"share_with_app_devs":0,"is_first_party":1,"bug_type":"309","os_version":"macOS 15.7.3 (24G419)","roots_installed":0,"incident_id":"3C06393C-9BCB-4A12-8474-39E14AA34FEE","name":"kagami"}
+{
+  "uptime" : 940,
+  "procRole" : "Foreground",
+  "version" : 2,
+  "userID" : 501,
+  "deployVersion" : 210,
+  "modelCode" : "MacBookPro15,1",
+  "coalitionID" : 889,
+  "osVersion" : {
+    "train" : "macOS 15.7.3",
+    "build" : "24G419",
+    "releaseType" : "User"
+  },
+  "captureTime" : "2026-03-02 15:43:04.7633 -0800",
+  "codeSigningMonitor" : 0,
+  "incident" : "3C06393C-9BCB-4A12-8474-39E14AA34FEE",
+  "pid" : 3775,
+  "cpuType" : "X86-64",
+  "roots_installed" : 0,
+  "bug_type" : "309",
+  "procLaunch" : "2026-03-02 15:42:35.3686 -0800",
+  "procStartAbsTime" : 913846107444,
+  "procExitAbsTime" : 943238026695,
+  "procName" : "kagami",
+  "procPath" : "\/Users\/USER\/Documents\/*\/kagami",
+  "parentProc" : "zsh",
+  "parentPid" : 674,
+  "coalitionName" : "com.googlecode.iterm2",
+  "crashReporterKey" : "4D48307C-083B-1518-3ACA-A9BDEC10360F",
+  "appleIntelligenceStatus" : {"state":"unavailable","reasons":["deviceNotCapable"]},
+  "responsiblePid" : 643,
+  "responsibleProc" : "iTerm2",
+  "codeSigningID" : "",
+  "codeSigningTeamID" : "",
+  "codeSigningValidationCategory" : 0,
+  "codeSigningTrustLevel" : 4294967295,
+  "codeSigningAuxiliaryInfo" : 0,
+  "bootSessionUUID" : "83674DF4-C247-4131-BD0E-C9CC1B94F93C",
+  "wakeTime" : 435,
+  "bridgeVersion" : {"build":"23P2048","train":"10.2"},
+  "sleepWakeUUID" : "B19902F8-7771-4727-850A-7A5D62F95F75",
+  "sip" : "enabled",
+  "vmRegionInfo" : "0x244c is not in any region.  Bytes before following region: 4298169268\n      REGION TYPE                    START - END         [ VSIZE] PRT\/MAX SHRMOD  REGION DETAIL\n      UNUSED SPACE AT START\n--->  \n      __TEXT                      100310000-100c5f000    [ 9532K] r-x\/r-x SM=COW  target\/release\/kagami",
+  "exception" : {"codes":"0x0000000000000001, 0x000000000000244c","rawCodes":[1,9292],"type":"EXC_BAD_ACCESS","signal":"SIGSEGV","subtype":"KERN_INVALID_ADDRESS at 0x000000000000244c"},
+  "termination" : {"flags":0,"code":11,"namespace":"SIGNAL","indicator":"Segmentation fault: 11","byProc":"exc handler","byPid":3775},
+  "ktriageinfo" : "VM - (arg = 0x3) mach_vm_allocate_kernel failed within call to vm_map_enter\nVM - (arg = 0x3) mach_vm_allocate_kernel failed within call to vm_map_enter\nVM - (arg = 0x3) mach_vm_allocate_kernel failed within call to vm_map_enter\nVM - (arg = 0x3) mach_vm_allocate_kernel failed within call to vm_map_enter\nVM - (arg = 0x3) mach_vm_allocate_kernel failed within call to vm_map_enter\n",
+  "vmregioninfo" : "0x244c is not in any region.  Bytes before following region: 4298169268\n      REGION TYPE                    START - END         [ VSIZE] PRT\/MAX SHRMOD  REGION DETAIL\n      UNUSED SPACE AT START\n--->  \n      __TEXT                      100310000-100c5f000    [ 9532K] r-x\/r-x SM=COW  target\/release\/kagami",
+  "extMods" : {"caller":{"thread_create":0,"thread_set_state":0,"task_for_pid":0},"system":{"thread_create":0,"thread_set_state":0,"task_for_pid":0},"targeted":{"thread_create":0,"thread_set_state":0,"task_for_pid":0},"warnings":0},
+  "faultingThread" : 0,
+  "threads" : [{"queue":"com.apple.main-thread","instructionState":{"instructionStream":{"bytes":[72,141,189,240,252,255,255,232,71,221,255,255,233,234,0,0,0,72,141,189,120,255,255,255,72,141,181,176,250,255,255,185,11,0,0,0,243,72,165,72,141,189,240,252,255,255,232,32,221,255,255,72,133,219,15,132,179,0,0,0,69,133,246,15,132,170,0,0,0,65,131,254,1,117,21,243,15,126,3,102,15,115,248,8,102,15,127,69,208,190,8,0,0,0,235,36,243,15,111,3,102,15,127,69,208,72,137,222,72,131,198,16,72,141,189,48,255,255,255,185,9,0,0,0,243,72,165,190,88,0,0,0,186,8,0,0,0,72,137,223,232,242,1,1,0,15,40,69,208,15,41,133,176,250,255,255,72,141,189,192,250,255,255,72,141,181,48,255,255,255,185,9,0,0,0,243,72,165,198,133,96,252,255,255,0,72,141,13,59,37,22,0],"offset":96}},"frames":[{"imageOffset":213581,"symbol":"sankaku_stream_create","symbolLocation":269,"imageIndex":1},{"imageOffset":500024,"symbol":"_$LT$kagami..RealDuplexSession$u20$as$u20$kagami..MediaProvider$GT$::connect::h437538c8c98adbef","symbolLocation":440,"imageIndex":0},{"imageOffset":500815,"symbol":"kagami::SessionManager::connect_peer::hc94e1913d75a0ed7","symbolLocation":159,"imageIndex":0},{"imageOffset":351290,"symbol":"i_slint_core::callbacks::Callback$LT$Arg$C$Ret$GT$::set_handler::_$u7b$$u7b$closure$u7d$$u7d$::h732237894d1cf1d7","symbolLocation":474,"imageIndex":0},{"imageOffset":91669,"symbol":"core::ops::function::FnOnce::call_once::h58a46cc1f5a665fa","symbolLocation":69,"imageIndex":0},{"imageOffset":125749,"symbol":"core::ops::function::FnOnce::call_once::haecfff1450a25de5","symbolLocation":69,"imageIndex":0},{"imageOffset":3819386,"symbol":"i_slint_core::callbacks::Callback$LT$Arg$C$Ret$GT$::call::h404b6d8a5754c115","symbolLocation":42,"imageIndex":0},{"imageOffset":3942907,"symbol":"_$LT$i_slint_core..items..input_items..TouchArea$u20$as$u20$i_slint_core..items..Item_vtable_mod..Item$GT$::input_event::h9276d002be155aab","symbolLocation":555,"imageIndex":0},{"imageOffset":3878253,"symbol":"i_slint_core::input::handle_mouse_grab::h328674192953c96f","symbolLocation":461,"imageIndex":0},{"imageOffset":3972980,"symbol":"i_slint_core::window::WindowInner::process_mouse_input::h3a6ac77e9172e361","symbolLocation":2228,"imageIndex":0},{"imageOffset":1424189,"symbol":"_$LT$i_slint_backend_winit..event_loop..EventLoopState$u20$as$u20$winit..application..ApplicationHandler$LT$i_slint_backend_winit..SlintEvent$GT$$GT$::window_event::h1ecd398d09534d71","symbolLocation":3933,"imageIndex":0},{"imageOffset":1863790,"symbol":"winit::platform::pump_events::EventLoopExtPumpEvents::pump_app_events::_$u7b$$u7b$closure$u7d$$u7d$::hdad3c1f813f10a07","symbolLocation":382,"imageIndex":0},{"imageOffset":1861244,"symbol":"winit::platform_impl::macos::event_loop::map_user_event::_$u7b$$u7b$closure$u7d$$u7d$::h5cfdcfbe858c5232","symbolLocation":316,"imageIndex":0},{"imageOffset":3426210,"symbol":"winit::platform_impl::macos::event_handler::EventHandler::handle_event::h4f8625299f4d70cd","symbolLocation":98,"imageIndex":0},{"imageOffset":3383853,"symbol":"winit::platform_impl::macos::app_state::ApplicationDelegate::maybe_queue_event::h7ba553dd911fafd7","symbolLocation":301,"imageIndex":0},{"imageOffset":3343935,"symbol":"winit::platform_impl::macos::view::WinitView::queue_event::h192abf3f65ab79b9","symbolLocation":95,"imageIndex":0},{"imageOffset":3343785,"symbol":"winit::platform_impl::macos::view::WinitView::mouse_click::haf776b7d0beefbab","symbolLocation":281,"imageIndex":0},{"imageOffset":3379424,"symbol":"winit::platform_impl::macos::view::WinitView::mouse_up::h4383e7206b6fa979","symbolLocation":144,"imageIndex":0},{"imageOffset":13958124,"symbol":"_routeMouseUpEvent","symbolLocation":136,"imageIndex":10},{"imageOffset":1667901,"symbol":"-[NSWindow(NSEventRouting) _reallySendEvent:isDelayedEvent:]","symbolLocation":471,"imageIndex":10},{"imageOffset":1666885,"symbol":"-[NSWindow(NSEventRouting) sendEvent:]","symbolLocation":344,"imageIndex":10},{"imageOffset":11322825,"symbol":"-[NSApplication(NSEventRouting) sendEvent:]","symbolLocation":1905,"imageIndex":10},{"imageOffset":3391568,"symbol":"winit::platform_impl::macos::app::send_event::hb1f5abaa6d90ed14","symbolLocation":560,"imageIndex":0},{"imageOffset":6487079,"symbol":"-[NSApplication _handleEvent:]","symbolLocation":65,"imageIndex":10},{"imageOffset":200405,"symbol":"-[NSApplication run]","symbolLocation":654,"imageIndex":10},{"imageOffset":1862297,"symbol":"winit::platform_impl::macos::event_loop::EventLoop$LT$T$GT$::run_on_demand::hd4bc50634063da78","symbolLocation":281,"imageIndex":0},{"imageOffset":1429292,"symbol":"i_slint_backend_winit::event_loop::EventLoopState::run::hc29709594c0c0c65","symbolLocation":284,"imageIndex":0},{"imageOffset":1626942,"symbol":"_$LT$i_slint_backend_winit..Backend$u20$as$u20$i_slint_core..platform..Platform$GT$::run_event_loop::h766f5ff8c337c637","symbolLocation":302,"imageIndex":0},{"imageOffset":1406729,"symbol":"std::thread::local::LocalKey$LT$T$GT$::with::h2e998d801214f6a2","symbolLocation":57,"imageIndex":0},{"imageOffset":1406320,"symbol":"slint::run_event_loop::he1b872d107fa9406","symbolLocation":32,"imageIndex":0},{"imageOffset":9998,"symbol":"_$LT$kagami..slint_generatedMainWindow..MainWindow$u20$as$u20$i_slint_core..api..ComponentHandle$GT$::run::hab086837e393d0e0","symbolLocation":142,"imageIndex":0},{"imageOffset":510403,"symbol":"kagami::main::haf9b6b962a3ebed3","symbolLocation":5731,"imageIndex":0},{"imageOffset":514219,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::h484f584cd78b0f3f","symbolLocation":11,"imageIndex":0},{"imageOffset":588467,"symbol":"std::rt::lang_start::_$u7b$$u7b$closure$u7d$$u7d$::hdbde814b43f79e35","symbolLocation":35,"imageIndex":0},{"imageOffset":7604587,"symbol":"std::rt::lang_start_internal::h3867f272f8813525","symbolLocation":875,"imageIndex":0},{"imageOffset":514188,"symbol":"main","symbolLocation":44,"imageIndex":0},{"imageOffset":25904,"symbol":"start","symbolLocation":3056,"imageIndex":11}],"id":43695,"triggered":true,"threadState":{"r13":{"value":9223372036854775808},"rax":{"value":3584165883},"rflags":{"value":66050},"cpu":{"value":0},"r14":{"value":2},"rsi":{"value":10368},"r8":{"value":3586263203},"cr2":{"value":9292},"rdx":{"value":0},"r10":{"value":3586129920},"r9":{"value":255},"r15":{"value":105553133945184},"rbx":{"value":9292},"trap":{"value":14,"description":"(no mapping for user data read)"},"err":{"value":4},"r11":{"value":2043},"rip":{"value":4313272909,"matchesCrashFrame":1},"rbp":{"value":140702050603648},"rsp":{"value":140702050601728},"r12":{"value":105553157444640},"rcx":{"value":3584165883},"flavor":"x86_THREAD_STATE","rdi":{"value":256}},"name":"main"},{"id":43704,"frames":[{"imageOffset":6196,"symbol":"start_wqthread","symbolLocation":0,"imageIndex":13}],"threadState":{"r13":{"value":0},"rax":{"value":33554800},"rflags":{"value":512},"cpu":{"value":0},"r14":{"value":1},"rsi":{"value":4867},"r8":{"value":409604},"cr2":{"value":0},"rdx":{"value":123145332264960},"r10":{"value":0},"r9":{"value":18446744073709551615},"r15":{"value":123145332788088},"rbx":{"value":123145332789248},"trap":{"value":133},"err":{"value":33554800},"r11":{"value":582},"rip":{"value":140703331006516},"rbp":{"value":0},"rsp":{"value":123145332789248},"r12":{"value":5193733},"rcx":{"value":0},"flavor":"x86_THREAD_STATE","rdi":{"value":123145332789248}}},{"id":43705,"frames":[{"imageOffset":6196,"symbol":"start_wqthread","symbolLocation":0,"imageIndex":13}],"threadState":{"r13":{"value":0},"rax":{"value":33554800},"rflags":{"value":512},"cpu":{"value":0},"r14":{"value":0},"rsi":{"value":10243},"r8":{"value":409604},"cr2":{"value":0},"rdx":{"value":123145332801536},"r10":{"value":0},"r9":{"value":18446744073709551615},"r15":{"value":0},"rbx":{"value":123145333325824},"trap":{"value":133},"err":{"value":33554800},"r11":{"value":582},"rip":{"value":140703331006516},"rbp":{"value":0},"rsp":{"value":123145333325824},"r12":{"value":0},"rcx":{"value":0},"flavor":"x86_THREAD_STATE","rdi":{"value":123145333325824}}},{"id":43723,"name":"com.apple.coremedia.sharedRootQueue.47","threadState":{"r13":{"value":18446744071411073023},"rax":{"value":14},"rflags":{"value":514},"cpu":{"value":0},"r14":{"value":140384447515504},"rsi":{"value":4294966557265625092},"r8":{"value":3},"cr2":{"value":0},"rdx":{"value":999999828},"r10":{"value":4999999828},"r9":{"value":203},"r15":{"value":1000000000},"rbx":{"value":948226693697},"trap":{"value":133},"err":{"value":16777254},"r11":{"value":514},"rip":{"value":140703330753246},"rbp":{"value":123145333862208},"rsp":{"value":123145333862168},"r12":{"value":0},"rcx":{"value":123145333862168},"flavor":"x86_THREAD_STATE","rdi":{"value":25627}},"frames":[{"imageOffset":2782,"symbol":"semaphore_timedwait_trap","symbolLocation":10,"imageIndex":14},{"imageOffset":195675,"symbol":"_dispatch_sema4_timedwait","symbolLocation":52,"imageIndex":15},{"imageOffset":12446,"symbol":"_dispatch_semaphore_wait_slow","symbolLocation":58,"imageIndex":15},{"imageOffset":68024,"symbol":"_dispatch_worker_thread","symbolLocation":322,"imageIndex":15},{"imageOffset":24069,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":13},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":13}]},{"id":43735,"name":"com.apple.coremedia.sharedRootQueue.47","threadState":{"r13":{"value":18446744071411073023},"rax":{"value":14},"rflags":{"value":518},"cpu":{"value":0},"r14":{"value":140384447515504},"rsi":{"value":4294966724769349636},"r8":{"value":3},"cr2":{"value":0},"rdx":{"value":999999867},"r10":{"value":4999999867},"r9":{"value":127},"r15":{"value":1000000000},"rbx":{"value":948229814330},"trap":{"value":133},"err":{"value":16777254},"r11":{"value":518},"rip":{"value":140703330753246},"rbp":{"value":123145334398784},"rsp":{"value":123145334398744},"r12":{"value":0},"rcx":{"value":123145334398744},"flavor":"x86_THREAD_STATE","rdi":{"value":25627}},"frames":[{"imageOffset":2782,"symbol":"semaphore_timedwait_trap","symbolLocation":10,"imageIndex":14},{"imageOffset":195675,"symbol":"_dispatch_sema4_timedwait","symbolLocation":52,"imageIndex":15},{"imageOffset":12446,"symbol":"_dispatch_semaphore_wait_slow","symbolLocation":58,"imageIndex":15},{"imageOffset":68024,"symbol":"_dispatch_worker_thread","symbolLocation":322,"imageIndex":15},{"imageOffset":24069,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":13},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":13}]},{"id":43749,"name":"caulk.messenger.shared:17","threadState":{"r13":{"value":0},"rax":{"value":14},"rflags":{"value":515},"cpu":{"value":0},"r14":{"value":105553146419536},"rsi":{"value":105553158188768},"r8":{"value":105553158188768},"cr2":{"value":0},"rdx":{"value":10},"r10":{"value":0},"r9":{"value":25},"r15":{"value":0},"rbx":{"value":105553146419457},"trap":{"value":133},"err":{"value":16777252},"r11":{"value":515},"rip":{"value":140703330753222},"rbp":{"value":123145334935408},"rsp":{"value":123145334935368},"r12":{"value":0},"rcx":{"value":123145334935368},"flavor":"x86_THREAD_STATE","rdi":{"value":64263}},"frames":[{"imageOffset":2758,"symbol":"semaphore_wait_trap","symbolLocation":10,"imageIndex":14},{"imageOffset":6722,"symbol":"caulk::semaphore::timed_wait(double)","symbolLocation":158,"imageIndex":16},{"imageOffset":6500,"symbol":"caulk::concurrent::details::worker_thread::run()","symbolLocation":30,"imageIndex":16},{"imageOffset":5800,"symbol":"void* caulk::thread_proxy<std::__1::tuple<caulk::thread::attributes, void (caulk::concurrent::details::worker_thread::*)(), std::__1::tuple<caulk::concurrent::details::worker_thread*>>>(void*)","symbolLocation":41,"imageIndex":16},{"imageOffset":24069,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":13},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":13}]},{"id":43750,"name":"caulk.messenger.shared:high","threadState":{"r13":{"value":0},"rax":{"value":14},"rflags":{"value":515},"cpu":{"value":0},"r14":{"value":105553146419952},"rsi":{"value":105553158188896},"r8":{"value":105553158188896},"cr2":{"value":0},"rdx":{"value":12},"r10":{"value":0},"r9":{"value":27},"r15":{"value":0},"rbx":{"value":105553146419713},"trap":{"value":133},"err":{"value":16777252},"r11":{"value":515},"rip":{"value":140703330753222},"rbp":{"value":123145335471984},"rsp":{"value":123145335471944},"r12":{"value":0},"rcx":{"value":123145335471944},"flavor":"x86_THREAD_STATE","rdi":{"value":44291}},"frames":[{"imageOffset":2758,"symbol":"semaphore_wait_trap","symbolLocation":10,"imageIndex":14},{"imageOffset":6722,"symbol":"caulk::semaphore::timed_wait(double)","symbolLocation":158,"imageIndex":16},{"imageOffset":6500,"symbol":"caulk::concurrent::details::worker_thread::run()","symbolLocation":30,"imageIndex":16},{"imageOffset":5800,"symbol":"void* caulk::thread_proxy<std::__1::tuple<caulk::thread::attributes, void (caulk::concurrent::details::worker_thread::*)(), std::__1::tuple<caulk::concurrent::details::worker_thread*>>>(void*)","symbolLocation":41,"imageIndex":16},{"imageOffset":24069,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":13},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":13}]},{"id":43802,"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":14},{"imageOffset":25262,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":13},{"imageOffset":118429,"symbol":"WaitOnConditionTimed","symbolLocation":78,"imageIndex":17},{"imageOffset":39416,"symbol":"FigSemaphoreWaitRelative","symbolLocation":136,"imageIndex":17},{"imageOffset":286129,"symbol":"CMIO::Thread::SignaledThread::ThreadLoop()","symbolLocation":121,"imageIndex":18},{"imageOffset":285960,"symbol":"CMIO::Thread::SignaledThread::WorkQueuedThreadCallback(void*)","symbolLocation":206,"imageIndex":18},{"imageOffset":117597,"symbol":"figThreadMain","symbolLocation":237,"imageIndex":17},{"imageOffset":24069,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":13},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":13}],"threadState":{"r13":{"value":5636100900259584},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":105553120407560},"rsi":{"value":5636100900259584},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":1311744},"r10":{"value":0},"r9":{"value":65704},"r15":{"value":1311744},"rbx":{"value":123145336008704},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703330764534},"rbp":{"value":123145336007968},"rsp":{"value":123145336007816},"r12":{"value":123145336007840},"rcx":{"value":123145336007816},"flavor":"x86_THREAD_STATE","rdi":{"value":105553120407560}}},{"id":43805,"name":"mDNS_daemon","threadState":{"r13":{"value":123145338115544},"rax":{"value":4},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":8},"rsi":{"value":0},"r8":{"value":1024},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":140384479163904},"r9":{"value":123145338113480},"r15":{"value":4307353440,"symbolLocation":16,"symbol":"anon.8fb989f1de85234ad643a97e2f297682.1"},"rbx":{"value":123145338114144},"trap":{"value":133},"err":{"value":33554795},"r11":{"value":582},"rip":{"value":140703330773026},"rbp":{"value":123145338113504},"rsp":{"value":123145338113464},"r12":{"value":123145338116360},"rcx":{"value":123145338113464},"flavor":"x86_THREAD_STATE","rdi":{"value":5}},"frames":[{"imageOffset":22562,"symbol":"kevent","symbolLocation":10,"imageIndex":14},{"imageOffset":7558977,"symbol":"mio::poll::Poll::poll::he7443cd9b61fca4a","symbolLocation":97,"imageIndex":0},{"imageOffset":7257410,"symbol":"mdns_sd::service_daemon::Zeroconf::run::hb5f45c55c8231306","symbolLocation":2482,"imageIndex":0},{"imageOffset":7119325,"symbol":"mdns_sd::service_daemon::ServiceDaemon::daemon_thread::h6335c8a5d660bf67","symbolLocation":6877,"imageIndex":0},{"imageOffset":7517043,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::hd14cc1d3e5229ab0","symbolLocation":67,"imageIndex":0},{"imageOffset":7547069,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::hcaab4dd3492c3987","symbolLocation":285,"imageIndex":0},{"imageOffset":7619931,"symbol":"std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd","symbolLocation":395,"imageIndex":0},{"imageOffset":24069,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":13},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":13}]},{"id":43806,"frames":[{"imageOffset":2758,"symbol":"semaphore_wait_trap","symbolLocation":10,"imageIndex":14},{"imageOffset":11407,"symbol":"_dispatch_sema4_wait","symbolLocation":16,"imageIndex":15},{"imageOffset":12486,"symbol":"_dispatch_semaphore_wait_slow","symbolLocation":98,"imageIndex":15},{"imageOffset":7628608,"symbol":"std::thread::functions::park::h6554cad1c7c64841","symbolLocation":80,"imageIndex":0},{"imageOffset":404552,"symbol":"flume::Receiver$LT$T$GT$::recv::h30ddd17d45a4f4c5","symbolLocation":1064,"imageIndex":0},{"imageOffset":514399,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::hd45f3929ad560b02","symbolLocation":95,"imageIndex":0},{"imageOffset":560392,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h27de04f2af860605","symbolLocation":184,"imageIndex":0},{"imageOffset":7619931,"symbol":"std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd","symbolLocation":395,"imageIndex":0},{"imageOffset":24069,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":13},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":13}],"threadState":{"r13":{"value":0},"rax":{"value":14},"rflags":{"value":582},"cpu":{"value":0},"r14":{"value":105553121352896},"rsi":{"value":18446744073709551615},"r8":{"value":18446744069414584320},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":105553169439392},"r9":{"value":0},"r15":{"value":18446744073709551615},"rbx":{"value":105553121352960},"trap":{"value":133},"err":{"value":16777252},"r11":{"value":582},"rip":{"value":140703330753222},"rbp":{"value":123145340225792},"rsp":{"value":123145340225768},"r12":{"value":105553129810696},"rcx":{"value":123145340225768},"flavor":"x86_THREAD_STATE","rdi":{"value":73475}}},{"id":43825,"frames":[{"imageOffset":6196,"symbol":"start_wqthread","symbolLocation":0,"imageIndex":13}],"threadState":{"r13":{"value":0},"rax":{"value":33554800},"rflags":{"value":512},"cpu":{"value":0},"r14":{"value":1},"rsi":{"value":122635},"r8":{"value":409604},"cr2":{"value":0},"rdx":{"value":123145340239872},"r10":{"value":0},"r9":{"value":18446744073709551615},"r15":{"value":123145340763000},"rbx":{"value":123145340764160},"trap":{"value":133},"err":{"value":33554800},"r11":{"value":582},"rip":{"value":140703331006516},"rbp":{"value":0},"rsp":{"value":123145340764160},"r12":{"value":5193733},"rcx":{"value":0},"flavor":"x86_THREAD_STATE","rdi":{"value":123145340764160}}},{"id":43890,"name":"com.apple.NSEventThread","threadState":{"r13":{"value":21592279046},"rax":{"value":268451845},"rflags":{"value":518},"cpu":{"value":0},"r14":{"value":414528768573440},"rsi":{"value":21592279046},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":8589934592},"r10":{"value":414528768573440},"r9":{"value":414528768573440},"r15":{"value":2},"rbx":{"value":123145342906480},"trap":{"value":133},"err":{"value":16777263},"r11":{"value":518},"rip":{"value":140703330753354},"rbp":{"value":123145342906320},"rsp":{"value":123145342906216},"r12":{"value":414528768573440},"rcx":{"value":123145342906216},"flavor":"x86_THREAD_STATE","rdi":{"value":123145342906480}},"frames":[{"imageOffset":2890,"symbol":"mach_msg2_trap","symbolLocation":10,"imageIndex":14},{"imageOffset":63236,"symbol":"mach_msg2_internal","symbolLocation":83,"imageIndex":14},{"imageOffset":31683,"symbol":"mach_msg_overwrite","symbolLocation":574,"imageIndex":14},{"imageOffset":3643,"symbol":"mach_msg","symbolLocation":19,"imageIndex":14},{"imageOffset":506754,"symbol":"__CFRunLoopServiceMachPort","symbolLocation":145,"imageIndex":19},{"imageOffset":501199,"symbol":"__CFRunLoopRun","symbolLocation":1430,"imageIndex":19},{"imageOffset":498178,"symbol":"CFRunLoopRunSpecific","symbolLocation":536,"imageIndex":19},{"imageOffset":1657343,"symbol":"_NSEventThread","symbolLocation":127,"imageIndex":10},{"imageOffset":24069,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":13},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":13}]},{"id":44689,"name":"tokio-runtime-worker","threadState":{"r13":{"value":4294967552},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":105553159753376},"rsi":{"value":4294967552},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":0},"r9":{"value":160},"r15":{"value":0},"rbx":{"value":123145345019904},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703330764534},"rbp":{"value":123145345018240},"rsp":{"value":123145345018088},"r12":{"value":123145345018112},"rcx":{"value":123145345018088},"flavor":"x86_THREAD_STATE","rdi":{"value":105553159753376}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":14},{"imageOffset":25262,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":13},{"imageOffset":924158,"symbol":"tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92","symbolLocation":334,"imageIndex":1},{"imageOffset":914626,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40","symbolLocation":322,"imageIndex":1},{"imageOffset":907170,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9","symbolLocation":2834,"imageIndex":1},{"imageOffset":923358,"symbol":"tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680","symbolLocation":574,"imageIndex":1},{"imageOffset":908361,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506","symbolLocation":169,"imageIndex":1},{"imageOffset":1000861,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209","symbolLocation":141,"imageIndex":1},{"imageOffset":974208,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d","symbolLocation":176,"imageIndex":1},{"imageOffset":942428,"symbol":"tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1","symbolLocation":492,"imageIndex":1},{"imageOffset":997551,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23","symbolLocation":207,"imageIndex":1},{"imageOffset":948972,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b","symbolLocation":220,"imageIndex":1},{"imageOffset":1099675,"symbol":"std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd","symbolLocation":395,"imageIndex":1},{"imageOffset":24069,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":13},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":13}]},{"id":44690,"name":"tokio-runtime-worker","threadState":{"r13":{"value":4294967552},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":105553159780368},"rsi":{"value":4294967552},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":0},"r9":{"value":160},"r15":{"value":0},"rbx":{"value":123145347129344},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703330764534},"rbp":{"value":123145347127680},"rsp":{"value":123145347127528},"r12":{"value":123145347127552},"rcx":{"value":123145347127528},"flavor":"x86_THREAD_STATE","rdi":{"value":105553159780368}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":14},{"imageOffset":25262,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":13},{"imageOffset":924158,"symbol":"tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92","symbolLocation":334,"imageIndex":1},{"imageOffset":914626,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40","symbolLocation":322,"imageIndex":1},{"imageOffset":907170,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9","symbolLocation":2834,"imageIndex":1},{"imageOffset":923358,"symbol":"tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680","symbolLocation":574,"imageIndex":1},{"imageOffset":908361,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506","symbolLocation":169,"imageIndex":1},{"imageOffset":1000861,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209","symbolLocation":141,"imageIndex":1},{"imageOffset":974208,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d","symbolLocation":176,"imageIndex":1},{"imageOffset":942428,"symbol":"tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1","symbolLocation":492,"imageIndex":1},{"imageOffset":997551,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23","symbolLocation":207,"imageIndex":1},{"imageOffset":948972,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b","symbolLocation":220,"imageIndex":1},{"imageOffset":1099675,"symbol":"std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd","symbolLocation":395,"imageIndex":1},{"imageOffset":24069,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":13},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":13}]},{"id":44691,"name":"tokio-runtime-worker","threadState":{"r13":{"value":0},"rax":{"value":4},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":140384445474416},"rsi":{"value":0},"r8":{"value":1024},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":140384454983168},"r9":{"value":0},"r15":{"value":140384445474512},"rbx":{"value":105553169033240},"trap":{"value":133},"err":{"value":33554795},"r11":{"value":582},"rip":{"value":140703330773026},"rbp":{"value":123145349237024},"rsp":{"value":123145349236984},"r12":{"value":0},"rcx":{"value":123145349236984},"flavor":"x86_THREAD_STATE","rdi":{"value":7}},"frames":[{"imageOffset":22562,"symbol":"kevent","symbolLocation":10,"imageIndex":14},{"imageOffset":1004273,"symbol":"mio::poll::Poll::poll::h8e38eb0ff94c6c12","symbolLocation":97,"imageIndex":1},{"imageOffset":956558,"symbol":"tokio::runtime::io::driver::Driver::turn::h170094c85703b104","symbolLocation":158,"imageIndex":1},{"imageOffset":892761,"symbol":"tokio::runtime::time::Driver::park_internal::h8f7ef4cd681b723f","symbolLocation":665,"imageIndex":1},{"imageOffset":914524,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40","symbolLocation":220,"imageIndex":1},{"imageOffset":907170,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9","symbolLocation":2834,"imageIndex":1},{"imageOffset":923358,"symbol":"tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680","symbolLocation":574,"imageIndex":1},{"imageOffset":908361,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506","symbolLocation":169,"imageIndex":1},{"imageOffset":1000861,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209","symbolLocation":141,"imageIndex":1},{"imageOffset":974208,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d","symbolLocation":176,"imageIndex":1},{"imageOffset":942428,"symbol":"tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1","symbolLocation":492,"imageIndex":1},{"imageOffset":997551,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23","symbolLocation":207,"imageIndex":1},{"imageOffset":948972,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b","symbolLocation":220,"imageIndex":1},{"imageOffset":1099675,"symbol":"std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd","symbolLocation":395,"imageIndex":1},{"imageOffset":24069,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":13},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":13}]},{"id":44692,"name":"tokio-runtime-worker","threadState":{"r13":{"value":4294967552},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":105553159672320},"rsi":{"value":4294967552},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":0},"r9":{"value":160},"r15":{"value":0},"rbx":{"value":123145351348224},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703330764534},"rbp":{"value":123145351346560},"rsp":{"value":123145351346408},"r12":{"value":123145351346432},"rcx":{"value":123145351346408},"flavor":"x86_THREAD_STATE","rdi":{"value":105553159672320}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":14},{"imageOffset":25262,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":13},{"imageOffset":924158,"symbol":"tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92","symbolLocation":334,"imageIndex":1},{"imageOffset":914626,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40","symbolLocation":322,"imageIndex":1},{"imageOffset":907170,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9","symbolLocation":2834,"imageIndex":1},{"imageOffset":923358,"symbol":"tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680","symbolLocation":574,"imageIndex":1},{"imageOffset":908361,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506","symbolLocation":169,"imageIndex":1},{"imageOffset":1000861,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209","symbolLocation":141,"imageIndex":1},{"imageOffset":974208,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d","symbolLocation":176,"imageIndex":1},{"imageOffset":942428,"symbol":"tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1","symbolLocation":492,"imageIndex":1},{"imageOffset":997551,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23","symbolLocation":207,"imageIndex":1},{"imageOffset":948972,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b","symbolLocation":220,"imageIndex":1},{"imageOffset":1099675,"symbol":"std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd","symbolLocation":395,"imageIndex":1},{"imageOffset":24069,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":13},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":13}]},{"id":44693,"name":"tokio-runtime-worker","threadState":{"r13":{"value":4294967552},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":105553159781712},"rsi":{"value":4294967552},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":0},"r9":{"value":160},"r15":{"value":0},"rbx":{"value":123145353457664},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703330764534},"rbp":{"value":123145353456000},"rsp":{"value":123145353455848},"r12":{"value":123145353455872},"rcx":{"value":123145353455848},"flavor":"x86_THREAD_STATE","rdi":{"value":105553159781712}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":14},{"imageOffset":25262,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":13},{"imageOffset":924158,"symbol":"tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92","symbolLocation":334,"imageIndex":1},{"imageOffset":914626,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40","symbolLocation":322,"imageIndex":1},{"imageOffset":907170,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9","symbolLocation":2834,"imageIndex":1},{"imageOffset":923358,"symbol":"tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680","symbolLocation":574,"imageIndex":1},{"imageOffset":908361,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506","symbolLocation":169,"imageIndex":1},{"imageOffset":1000861,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209","symbolLocation":141,"imageIndex":1},{"imageOffset":974208,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d","symbolLocation":176,"imageIndex":1},{"imageOffset":942428,"symbol":"tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1","symbolLocation":492,"imageIndex":1},{"imageOffset":997551,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23","symbolLocation":207,"imageIndex":1},{"imageOffset":948972,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b","symbolLocation":220,"imageIndex":1},{"imageOffset":1099675,"symbol":"std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd","symbolLocation":395,"imageIndex":1},{"imageOffset":24069,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":13},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":13}]},{"id":44694,"name":"tokio-runtime-worker","threadState":{"r13":{"value":4294967552},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":105553159595296},"rsi":{"value":4294967552},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":0},"r9":{"value":160},"r15":{"value":0},"rbx":{"value":123145355567104},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703330764534},"rbp":{"value":123145355565440},"rsp":{"value":123145355565288},"r12":{"value":123145355565312},"rcx":{"value":123145355565288},"flavor":"x86_THREAD_STATE","rdi":{"value":105553159595296}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":14},{"imageOffset":25262,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":13},{"imageOffset":924158,"symbol":"tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92","symbolLocation":334,"imageIndex":1},{"imageOffset":914626,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40","symbolLocation":322,"imageIndex":1},{"imageOffset":907170,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9","symbolLocation":2834,"imageIndex":1},{"imageOffset":923358,"symbol":"tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680","symbolLocation":574,"imageIndex":1},{"imageOffset":908361,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506","symbolLocation":169,"imageIndex":1},{"imageOffset":1000861,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209","symbolLocation":141,"imageIndex":1},{"imageOffset":974208,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d","symbolLocation":176,"imageIndex":1},{"imageOffset":942428,"symbol":"tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1","symbolLocation":492,"imageIndex":1},{"imageOffset":997551,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23","symbolLocation":207,"imageIndex":1},{"imageOffset":948972,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b","symbolLocation":220,"imageIndex":1},{"imageOffset":1099675,"symbol":"std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd","symbolLocation":395,"imageIndex":1},{"imageOffset":24069,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":13},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":13}]},{"id":44695,"name":"tokio-runtime-worker","threadState":{"r13":{"value":4294967552},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":105553159782144},"rsi":{"value":4294967552},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":0},"r9":{"value":160},"r15":{"value":0},"rbx":{"value":123145357676544},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703330764534},"rbp":{"value":123145357674880},"rsp":{"value":123145357674728},"r12":{"value":123145357674752},"rcx":{"value":123145357674728},"flavor":"x86_THREAD_STATE","rdi":{"value":105553159782144}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":14},{"imageOffset":25262,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":13},{"imageOffset":924158,"symbol":"tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92","symbolLocation":334,"imageIndex":1},{"imageOffset":914626,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40","symbolLocation":322,"imageIndex":1},{"imageOffset":907170,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9","symbolLocation":2834,"imageIndex":1},{"imageOffset":923358,"symbol":"tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680","symbolLocation":574,"imageIndex":1},{"imageOffset":908361,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506","symbolLocation":169,"imageIndex":1},{"imageOffset":1000861,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209","symbolLocation":141,"imageIndex":1},{"imageOffset":974208,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d","symbolLocation":176,"imageIndex":1},{"imageOffset":942428,"symbol":"tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1","symbolLocation":492,"imageIndex":1},{"imageOffset":997551,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23","symbolLocation":207,"imageIndex":1},{"imageOffset":948972,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b","symbolLocation":220,"imageIndex":1},{"imageOffset":1099675,"symbol":"std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd","symbolLocation":395,"imageIndex":1},{"imageOffset":24069,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":13},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":13}]},{"id":44696,"name":"tokio-runtime-worker","threadState":{"r13":{"value":4294967552},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":105553159660880},"rsi":{"value":4294967552},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":0},"r9":{"value":160},"r15":{"value":0},"rbx":{"value":123145359785984},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703330764534},"rbp":{"value":123145359784320},"rsp":{"value":123145359784168},"r12":{"value":123145359784192},"rcx":{"value":123145359784168},"flavor":"x86_THREAD_STATE","rdi":{"value":105553159660880}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":14},{"imageOffset":25262,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":13},{"imageOffset":924158,"symbol":"tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92","symbolLocation":334,"imageIndex":1},{"imageOffset":914626,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40","symbolLocation":322,"imageIndex":1},{"imageOffset":907170,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9","symbolLocation":2834,"imageIndex":1},{"imageOffset":923358,"symbol":"tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680","symbolLocation":574,"imageIndex":1},{"imageOffset":908361,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506","symbolLocation":169,"imageIndex":1},{"imageOffset":1000861,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209","symbolLocation":141,"imageIndex":1},{"imageOffset":974208,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d","symbolLocation":176,"imageIndex":1},{"imageOffset":942428,"symbol":"tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1","symbolLocation":492,"imageIndex":1},{"imageOffset":997551,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23","symbolLocation":207,"imageIndex":1},{"imageOffset":948972,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b","symbolLocation":220,"imageIndex":1},{"imageOffset":1099675,"symbol":"std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd","symbolLocation":395,"imageIndex":1},{"imageOffset":24069,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":13},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":13}]},{"id":44697,"name":"tokio-runtime-worker","threadState":{"r13":{"value":4294967552},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":105553159676832},"rsi":{"value":4294967552},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":0},"r9":{"value":160},"r15":{"value":0},"rbx":{"value":123145361895424},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703330764534},"rbp":{"value":123145361893760},"rsp":{"value":123145361893608},"r12":{"value":123145361893632},"rcx":{"value":123145361893608},"flavor":"x86_THREAD_STATE","rdi":{"value":105553159676832}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":14},{"imageOffset":25262,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":13},{"imageOffset":924158,"symbol":"tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92","symbolLocation":334,"imageIndex":1},{"imageOffset":914626,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40","symbolLocation":322,"imageIndex":1},{"imageOffset":907170,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9","symbolLocation":2834,"imageIndex":1},{"imageOffset":923358,"symbol":"tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680","symbolLocation":574,"imageIndex":1},{"imageOffset":908361,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506","symbolLocation":169,"imageIndex":1},{"imageOffset":1000861,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209","symbolLocation":141,"imageIndex":1},{"imageOffset":974208,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d","symbolLocation":176,"imageIndex":1},{"imageOffset":942428,"symbol":"tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1","symbolLocation":492,"imageIndex":1},{"imageOffset":997551,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23","symbolLocation":207,"imageIndex":1},{"imageOffset":948972,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b","symbolLocation":220,"imageIndex":1},{"imageOffset":1099675,"symbol":"std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd","symbolLocation":395,"imageIndex":1},{"imageOffset":24069,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":13},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":13}]},{"id":44698,"name":"tokio-runtime-worker","threadState":{"r13":{"value":4294967552},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":105553160126848},"rsi":{"value":4294967552},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":0},"r9":{"value":160},"r15":{"value":0},"rbx":{"value":123145364004864},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703330764534},"rbp":{"value":123145364003200},"rsp":{"value":123145364003048},"r12":{"value":123145364003072},"rcx":{"value":123145364003048},"flavor":"x86_THREAD_STATE","rdi":{"value":105553160126848}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":14},{"imageOffset":25262,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":13},{"imageOffset":924158,"symbol":"tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92","symbolLocation":334,"imageIndex":1},{"imageOffset":914626,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40","symbolLocation":322,"imageIndex":1},{"imageOffset":907170,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9","symbolLocation":2834,"imageIndex":1},{"imageOffset":923358,"symbol":"tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680","symbolLocation":574,"imageIndex":1},{"imageOffset":908361,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506","symbolLocation":169,"imageIndex":1},{"imageOffset":1000861,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209","symbolLocation":141,"imageIndex":1},{"imageOffset":974208,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d","symbolLocation":176,"imageIndex":1},{"imageOffset":942428,"symbol":"tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1","symbolLocation":492,"imageIndex":1},{"imageOffset":997551,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23","symbolLocation":207,"imageIndex":1},{"imageOffset":948972,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b","symbolLocation":220,"imageIndex":1},{"imageOffset":1099675,"symbol":"std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd","symbolLocation":395,"imageIndex":1},{"imageOffset":24069,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":13},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":13}]},{"id":44699,"name":"tokio-runtime-worker","threadState":{"r13":{"value":4294967552},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":105553159781088},"rsi":{"value":4294967552},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":0},"r9":{"value":160},"r15":{"value":0},"rbx":{"value":123145366114304},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703330764534},"rbp":{"value":123145366112640},"rsp":{"value":123145366112488},"r12":{"value":123145366112512},"rcx":{"value":123145366112488},"flavor":"x86_THREAD_STATE","rdi":{"value":105553159781088}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":14},{"imageOffset":25262,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":13},{"imageOffset":924158,"symbol":"tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92","symbolLocation":334,"imageIndex":1},{"imageOffset":914626,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40","symbolLocation":322,"imageIndex":1},{"imageOffset":907170,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9","symbolLocation":2834,"imageIndex":1},{"imageOffset":923358,"symbol":"tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680","symbolLocation":574,"imageIndex":1},{"imageOffset":908361,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506","symbolLocation":169,"imageIndex":1},{"imageOffset":1000861,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209","symbolLocation":141,"imageIndex":1},{"imageOffset":974208,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d","symbolLocation":176,"imageIndex":1},{"imageOffset":942428,"symbol":"tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1","symbolLocation":492,"imageIndex":1},{"imageOffset":997551,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23","symbolLocation":207,"imageIndex":1},{"imageOffset":948972,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b","symbolLocation":220,"imageIndex":1},{"imageOffset":1099675,"symbol":"std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd","symbolLocation":395,"imageIndex":1},{"imageOffset":24069,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":13},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":13}]},{"id":44700,"name":"tokio-runtime-worker","threadState":{"r13":{"value":4294967552},"rax":{"value":260},"rflags":{"value":583},"cpu":{"value":0},"r14":{"value":105553159780416},"rsi":{"value":4294967552},"r8":{"value":0},"cr2":{"value":0},"rdx":{"value":0},"r10":{"value":0},"r9":{"value":160},"r15":{"value":0},"rbx":{"value":123145368223744},"trap":{"value":133},"err":{"value":33554737},"r11":{"value":582},"rip":{"value":140703330764534},"rbp":{"value":123145368222080},"rsp":{"value":123145368221928},"r12":{"value":123145368221952},"rcx":{"value":123145368221928},"flavor":"x86_THREAD_STATE","rdi":{"value":105553159780416}},"frames":[{"imageOffset":14070,"symbol":"__psynch_cvwait","symbolLocation":10,"imageIndex":14},{"imageOffset":25262,"symbol":"_pthread_cond_wait","symbolLocation":988,"imageIndex":13},{"imageOffset":924158,"symbol":"tokio::runtime::scheduler::multi_thread::park::Inner::park_condvar::h8f6c7e9075c55e92","symbolLocation":334,"imageIndex":1},{"imageOffset":914626,"symbol":"tokio::runtime::scheduler::multi_thread::worker::Context::park_internal::h9fa8c52d7bb86a40","symbolLocation":322,"imageIndex":1},{"imageOffset":907170,"symbol":"tokio::runtime::context::scoped::Scoped$LT$T$GT$::set::h2ce5e7ffb3556de9","symbolLocation":2834,"imageIndex":1},{"imageOffset":923358,"symbol":"tokio::runtime::context::runtime::enter_runtime::h60d2419ae9d27680","symbolLocation":574,"imageIndex":1},{"imageOffset":908361,"symbol":"tokio::runtime::scheduler::multi_thread::worker::run::hfa83e66cc3396506","symbolLocation":169,"imageIndex":1},{"imageOffset":1000861,"symbol":"tokio::runtime::task::core::Core$LT$T$C$S$GT$::poll::h07ac03f2b6cd2209","symbolLocation":141,"imageIndex":1},{"imageOffset":974208,"symbol":"tokio::runtime::task::harness::Harness$LT$T$C$S$GT$::poll::h9b07dc345b503a6d","symbolLocation":176,"imageIndex":1},{"imageOffset":942428,"symbol":"tokio::runtime::blocking::pool::Inner::run::h93e582ebc003efc1","symbolLocation":492,"imageIndex":1},{"imageOffset":997551,"symbol":"std::sys::backtrace::__rust_begin_short_backtrace::hc967f9e23cb3ad23","symbolLocation":207,"imageIndex":1},{"imageOffset":948972,"symbol":"core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h298069a923ce790b","symbolLocation":220,"imageIndex":1},{"imageOffset":1099675,"symbol":"std::sys::thread::unix::Thread::new::thread_start::h1d285fe08a91edcd","symbolLocation":395,"imageIndex":1},{"imageOffset":24069,"symbol":"_pthread_start","symbolLocation":115,"imageIndex":13},{"imageOffset":6231,"symbol":"thread_start","symbolLocation":15,"imageIndex":13}]}],
+  "usedImages" : [
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 4298178560,
+    "size" : 9760768,
+    "uuid" : "308f4f18-3315-3042-9786-f10db21147ca",
+    "path" : "*\/kagami",
+    "name" : "kagami"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 4313059328,
+    "size" : 1658880,
+    "uuid" : "1e307008-67d2-35dd-bb6b-5e958bd74c4b",
+    "path" : "\/Users\/USER\/Documents\/*\/libsankaku.dylib",
+    "name" : "libsankaku.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 4384989184,
+    "CFBundleShortVersionString" : "810.0",
+    "CFBundleIdentifier" : "com.apple.cmio.DAL.VDC-4",
+    "size" : 274432,
+    "uuid" : "e4da305d-e9aa-34ba-ae84-3b56b63daa69",
+    "path" : "\/System\/Library\/Frameworks\/CoreMediaIO.framework\/Versions\/A\/Resources\/VDC.plugin\/Contents\/MacOS\/VDC",
+    "name" : "VDC",
+    "CFBundleVersion" : "466.80.2"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 4392235008,
+    "CFBundleShortVersionString" : "1000.0",
+    "CFBundleIdentifier" : "com.apple.CMIOBaseUnits",
+    "size" : 1396736,
+    "uuid" : "d0d9f76d-c8cb-399d-a27d-728bf1d02493",
+    "path" : "\/System\/Library\/Frameworks\/CoreMediaIO.framework\/Versions\/A\/Resources\/BaseUnits\/CMIOBaseUnits.bundle\/Contents\/MacOS\/CMIOBaseUnits",
+    "name" : "CMIOBaseUnits",
+    "CFBundleVersion" : "5590.122.2.0.1"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 4390842368,
+    "CFBundleShortVersionString" : "1000.0",
+    "CFBundleIdentifier" : "com.apple.CMIOUnits",
+    "size" : 741376,
+    "uuid" : "74b91ecb-85ab-304b-be1a-76cef2b53d1e",
+    "path" : "\/System\/Library\/Frameworks\/CoreMediaIO.framework\/Versions\/A\/Resources\/CMIOUnits.bundle\/Contents\/MacOS\/CMIOUnits",
+    "name" : "CMIOUnits",
+    "CFBundleVersion" : "5590.122.2.0.1"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64h",
+    "base" : 4427808768,
+    "CFBundleShortVersionString" : "7.0",
+    "CFBundleIdentifier" : "com.apple.audio.codecs.Components",
+    "size" : 10309632,
+    "uuid" : "771b2d53-8bb3-3f3a-abd3-2c366d6df146",
+    "path" : "\/System\/Library\/Components\/AudioCodecs.component\/Contents\/MacOS\/AudioCodecs",
+    "name" : "AudioCodecs",
+    "CFBundleVersion" : "7.0"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 4466069504,
+    "CFBundleShortVersionString" : "23.7.4",
+    "CFBundleIdentifier" : "com.apple.AppleIntelKBLGraphicsVADriver",
+    "size" : 25550848,
+    "uuid" : "a821cbf6-22c9-3c9a-98ef-290c90c5bbeb",
+    "path" : "\/System\/Library\/Extensions\/AppleIntelKBLGraphicsVADriver.bundle\/Contents\/MacOS\/AppleIntelKBLGraphicsVADriver",
+    "name" : "AppleIntelKBLGraphicsVADriver",
+    "CFBundleVersion" : "23.0.7"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 4392169472,
+    "CFBundleShortVersionString" : "23.7.4",
+    "CFBundleIdentifier" : "com.apple.AppleIntelCFLGraphicsVAME",
+    "size" : 20480,
+    "uuid" : "e2924182-3337-3534-962b-a1ccdf2a8596",
+    "path" : "\/System\/Library\/Extensions\/AppleIntelCFLGraphicsVAME.bundle\/Contents\/MacOS\/AppleIntelCFLGraphicsVAME",
+    "name" : "AppleIntelCFLGraphicsVAME",
+    "CFBundleVersion" : "23.0.7"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64h",
+    "base" : 4423200768,
+    "CFBundleShortVersionString" : "7.0.24",
+    "CFBundleIdentifier" : "com.apple.AMDRadeonX4000GLDriver",
+    "size" : 1040384,
+    "uuid" : "6c57af6e-4735-3086-a81f-a19269b313f9",
+    "path" : "\/System\/Library\/Extensions\/AMDRadeonX4000GLDriver.bundle\/Contents\/MacOS\/AMDRadeonX4000GLDriver",
+    "name" : "AMDRadeonX4000GLDriver",
+    "CFBundleVersion" : "7.0.0"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64h",
+    "base" : 4422053888,
+    "size" : 53248,
+    "uuid" : "72642d3c-0206-38ee-9349-c720aee663ee",
+    "path" : "\/usr\/lib\/libobjc-trampolines.dylib",
+    "name" : "libobjc-trampolines.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703392935936,
+    "CFBundleShortVersionString" : "6.9",
+    "CFBundleIdentifier" : "com.apple.AppKit",
+    "size" : 22352636,
+    "uuid" : "994c93a6-44f3-3281-abea-6b8e97918a5f",
+    "path" : "\/System\/Library\/Frameworks\/AppKit.framework\/Versions\/C\/AppKit",
+    "name" : "AppKit",
+    "CFBundleVersion" : "2575.70.54"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703327174656,
+    "size" : 632520,
+    "uuid" : "1a622d74-549f-3f53-bd70-412bd11345e8",
+    "path" : "\/usr\/lib\/dyld",
+    "name" : "dyld"
+  },
+  {
+    "size" : 0,
+    "source" : "A",
+    "base" : 0,
+    "uuid" : "00000000-0000-0000-0000-000000000000"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703331000320,
+    "size" : 49112,
+    "uuid" : "a031f066-4daa-3801-9155-88106d874835",
+    "path" : "\/usr\/lib\/system\/libsystem_pthread.dylib",
+    "name" : "libsystem_pthread.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703330750464,
+    "size" : 248688,
+    "uuid" : "df27eb28-275e-3046-a421-655ea736be57",
+    "path" : "\/usr\/lib\/system\/libsystem_kernel.dylib",
+    "name" : "libsystem_kernel.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703329267712,
+    "size" : 291642,
+    "uuid" : "6ca6112a-70c8-39a2-8cfa-da2139709d3c",
+    "path" : "\/usr\/lib\/system\/libdispatch.dylib",
+    "name" : "libdispatch.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703522852864,
+    "CFBundleShortVersionString" : "1.0",
+    "CFBundleIdentifier" : "com.apple.audio.caulk",
+    "size" : 146696,
+    "uuid" : "a84cc72a-fe0a-3724-a65b-c5b03e47741b",
+    "path" : "\/System\/Library\/PrivateFrameworks\/caulk.framework\/Versions\/A\/caulk",
+    "name" : "caulk"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703523000320,
+    "CFBundleShortVersionString" : "1.0",
+    "CFBundleIdentifier" : "com.apple.CoreMedia",
+    "size" : 1390541,
+    "uuid" : "1cf9012b-ec54-3813-96c6-f631d9fb8ad8",
+    "path" : "\/System\/Library\/Frameworks\/CoreMedia.framework\/Versions\/A\/CoreMedia",
+    "name" : "CoreMedia",
+    "CFBundleVersion" : "3235.14.105.3"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64",
+    "base" : 140703642210304,
+    "CFBundleShortVersionString" : "1000.0",
+    "CFBundleIdentifier" : "com.apple.CoreMediaIO",
+    "size" : 1085216,
+    "uuid" : "2981613a-36c3-3836-9a36-43c7bfce26f0",
+    "path" : "\/System\/Library\/Frameworks\/CoreMediaIO.framework\/Versions\/A\/CoreMediaIO",
+    "name" : "CoreMediaIO",
+    "CFBundleVersion" : "5590.122.2.0.1"
+  },
+  {
+    "source" : "P",
+    "arch" : "x86_64h",
+    "base" : 140703331475456,
+    "CFBundleShortVersionString" : "6.9",
+    "CFBundleIdentifier" : "com.apple.CoreFoundation",
+    "size" : 4935651,
+    "uuid" : "ec3331d2-fd11-3a69-b1f8-b5afda0cb06d",
+    "path" : "\/System\/Library\/Frameworks\/CoreFoundation.framework\/Versions\/A\/CoreFoundation",
+    "name" : "CoreFoundation",
+    "CFBundleVersion" : "3603.1.403"
+  }
+],
+  "sharedCache" : {
+  "base" : 140703298699264,
+  "size" : 30064771072,
+  "uuid" : "cdd12d87-81fd-3c54-9808-1a5790480eac"
+},
+  "vmSummary" : "ReadOnly portion of Libraries: Total=1.3G resident=0K(0%) swapped_out_or_unallocated=1.3G(100%)\nWritable regions: Total=731.7M written=0K(0%) resident=0K(0%) swapped_out=0K(0%) unallocated=731.7M(100%)\n\n                                VIRTUAL   REGION \nREGION TYPE                        SIZE    COUNT (non-coalesced) \n===========                     =======  ======= \nAccelerate framework               128K        1 \nActivity Tracing                   256K        1 \nCG image                            48K        4 \nColorSync                          260K       32 \nCoreAnimation                      148K       17 \nCoreGraphics                        20K        2 \nCoreMedia memory pool               80K        2 \nCoreUI image data                 1300K       10 \nFoundation                          16K        1 \nIOKit                             15.5M        2 \nKernel Alloc Once                    8K        1 \nMALLOC                           677.6M      139 \nMALLOC guard page                   32K        8 \nOpenGL GLSL                        128K        2 \nSTACK GUARD                         92K       23 \nStack                             40.7M       24 \nStack Guard                       56.0M        1 \nVM_ALLOCATE                       12.3M       42 \nVM_ALLOCATE (reserved)             256K        2         reserved VM address space (unallocated)\n__CTF                               824        1 \n__DATA                            36.6M      955 \n__DATA_CONST                     115.6M      968 \n__DATA_DIRTY                      2583K      338 \n__FONT_DATA                        2352        1 \n__GLSLBUILTINS                    5174K        1 \n__INFO_FILTER                         8        1 \n__LINKEDIT                       166.3M       11 \n__OBJC_RO                         61.3M        1 \n__OBJC_RW                         2396K        2 \n__TEXT                             1.2G      987 \n__TPRO_CONST                         16        2 \nmapped file                      226.6M       29 \nshared memory                      800K       19 \n===========                     =======  ======= \nTOTAL                              2.5G     3630 \nTOTAL, minus reserved VM space     2.5G     3630 \n",
+  "legacyInfo" : {
+  "threadTriggered" : {
+    "name" : "main",
+    "queue" : "com.apple.main-thread"
+  }
+},
+  "logWritingSignature" : "083bc7ff9818a54c5c1f6502abde0842b647273a",
+  "trialInfo" : {
+  "rollouts" : [
+    {
+      "rolloutId" : "64b21a7351cbb02ce3442e4e",
+      "factorPackIds" : {
+        "REMINDERS_GROCERY" : "6647f0f7b6a75d3dc32993e7"
+      },
+      "deploymentId" : 240000042
+    },
+    {
+      "rolloutId" : "6425c75e4327780c10cc4252",
+      "factorPackIds" : {
+        "SIRI_HOME_AUTOMATION_INTENT_SELECTION_CACHE" : "642600a457e7664b1698eb32"
+      },
+      "deploymentId" : 240000004
+    }
+  ],
+  "experiments" : [
+
+  ]
+}
+}
+
+Model: MacBookPro15,1, BootROM 2094.40.1.0.0 (iBridge: 23.16.12048.0.0,0), 6 processors, 6-Core Intel Core i7, 2.2 GHz, 16 GB, SMC 
+Graphics: Intel UHD Graphics 630, Intel UHD Graphics 630, Built-In
+Display: Color LCD, 2880 x 1800 Retina, Main, MirrorOff, Online
+Graphics: Radeon Pro 555X, Radeon Pro 555X, PCIe, 4 GB
+Memory Module: BANK 0/ChannelA-DIMM0, 8 GB, DDR4, 2400 MHz, Micron, 8ATF1G64HZ-2G6E1
+Memory Module: BANK 2/ChannelB-DIMM0, 8 GB, DDR4, 2400 MHz, Micron, 8ATF1G64HZ-2G6E1
+AirPort: spairport_wireless_card_type_wifi (0x14E4, 0x7BF), wl0: Jul 26 2024 22:09:35 version 9.30.514.0.32.5.94 FWID 01-47278712
+Bluetooth: Version (null), 0 services, 0 devices, 0 incoming serial ports
+Network Service: USB 10/100/1000 LAN, Ethernet, en5
+USB Device: USB 10/100/1000 LAN
+USB Device: USB31Bus
+USB Device: T2Bus
+USB Device: Touch Bar Backlight
+USB Device: Touch Bar Display
+USB Device: Apple Internal Keyboard / Trackpad
+USB Device: Headset
+USB Device: Ambient Light Sensor
+USB Device: FaceTime HD Camera (Built-in)
+USB Device: Apple T2 Controller
+Thunderbolt Bus: MacBook Pro, Apple Inc., 47.5
+Thunderbolt Bus: MacBook Pro, Apple Inc., 47.5
+
