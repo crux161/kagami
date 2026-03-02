@@ -13,8 +13,10 @@ export component MainWindow inherits Window {
     in-out property <int> selected_peer_index: -1;
     in-out property <bool> audio_muted: false;
     in-out property <bool> video_stopped: false;
+    in-out property <bool> is_connected: false;
 
     callback connect_requested();
+    callback disconnect_requested();
     callback audio_muted_toggled(bool);
     callback video_stopped_toggled(bool);
 
@@ -117,9 +119,17 @@ export component MainWindow inherits Window {
 
             Button {
                 text: "Connect";
-                enabled: root.selected_peer_index >= 0;
+                enabled: !root.is_connected && root.selected_peer_index >= 0;
                 clicked => {
                     root.connect_requested();
+                }
+            }
+
+            Button {
+                text: "Disconnect";
+                enabled: root.is_connected;
+                clicked => {
+                    root.disconnect_requested();
                 }
             }
 

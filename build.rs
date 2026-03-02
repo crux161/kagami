@@ -11,8 +11,8 @@ fn main() {
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
 
     if target_os == "windows" {
-        let sankaku_dir = manifest_dir.join("core").join("sankaku");
-        let nezumi_dir = manifest_dir.join("core").join("nezumi");
+        let sankaku_dir = manifest_dir.join("dependencies").join("sankaku");
+        let nezumi_dir = manifest_dir.join("dependencies").join("nezumi");
         let sankaku_import_lib = sankaku_dir.join("sankaku.dll.lib");
         let nezumi_import_lib = nezumi_dir.join("nezumi.dll.lib");
         let sankaku_dll = sankaku_dir.join("sankaku.dll");
@@ -23,8 +23,14 @@ fn main() {
         ensure_exists(&sankaku_dll);
         ensure_exists(&nezumi_dll);
 
-        println!("cargo:rustc-link-search=native={}", sankaku_dir.display());
-        println!("cargo:rustc-link-search=native={}", nezumi_dir.display());
+        let staging = out_dir.join("win_libs");
+        fs::create_dir_all(&staging).expect("failed to create Windows lib staging dir");
+        fs::copy(&sankaku_import_lib, staging.join("sankaku.lib"))
+            .expect("failed to stage sankaku import lib");
+        fs::copy(&nezumi_import_lib, staging.join("nezumi.lib"))
+            .expect("failed to stage nezumi import lib");
+
+        println!("cargo:rustc-link-search=native={}", staging.display());
         println!("cargo:rustc-link-lib=dylib=sankaku");
         println!("cargo:rustc-link-lib=dylib=nezumi");
 

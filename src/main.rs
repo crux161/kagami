@@ -10,8 +10,11 @@ use std::rc::Rc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use discovery::{DiscoveryManager, Peer};
-use nezumi::NezumiProducer;
-use sankaku_ffi::{SankakuStreamStats, SankakuTelemetry, VideoFrame, VIDEO_CODEC_HEVC};
+use sankaku_ffi::{
+    SankakuFrameKind, SankakuQuicHandle, SankakuQuicHandleKind, SankakuStreamHandle,
+    SankakuStreamStats, SankakuTelemetry, SankakuVideoFrame, VideoFrame,
+    SANKAKU_FRAME_FLAG_KEYFRAME, VIDEO_CODEC_HEVC,
+};
 
 slint::include_modules!();
 
@@ -19,6 +22,7 @@ const PREFERRED_RECEIVER_PORT: u16 = 9292;
 
 trait MediaProvider {
     fn connect(&mut self, addr: &str) -> Result<(), String>;
+    fn disconnect(&mut self);
     fn local_receiver_port(&self) -> u16;
     fn poll_frame(&mut self) -> Option<slint::Image>;
     fn poll_local_preview(&mut self) -> Option<slint::Image>;
@@ -46,6 +50,7 @@ struct RealDuplexSession {
     capture_width: u32,
     capture_height: u32,
     frames_sent: u64,
+    stream_handle: *mut SankakuStreamHandle,
 }
 
 #[allow(dead_code)]
@@ -63,6 +68,7 @@ impl RealDuplexSession {
             capture_width: width,
             capture_height: height,
             frames_sent: 0,
+            stream_handle: std::ptr::null_mut(),
         }
     }
 
@@ -91,9 +97,33 @@ impl MediaProvider for RealDuplexSession {
         if trimmed.is_empty() {
             return Err("address cannot be empty".to_owned());
         }
+
+        self.disconnect();
+
+        let port = self.local_receiver_port();
+        let quic_handle = SankakuQuicHandle {
+            kind: SankakuQuicHandleKind::Endpoint,
+            handle: port as u64,
+        };
+        let handle = unsafe { sankaku_ffi::sankaku_stream_create(quic_handle) };
+        if handle.is_null() {
+            return Err("sankaku_stream_create returned null".to_owned());
+        }
+        self.stream_handle = handle;
         self.connected_addr = Some(trimmed.to_owned());
-        log::info!("RealDuplexSession connected to {trimmed}");
+        log::info!("RealDuplexSession connected to {trimmed} (stream handle acquired)");
         Ok(())
+    }
+
+    fn disconnect(&mut self) {
+        if !self.stream_handle.is_null() {
+            unsafe { sankaku_ffi::sankaku_stream_destroy(self.stream_handle) };
+            self.stream_handle = std::ptr::null_mut();
+            log::info!("RealDuplexSession Sankaku stream destroyed");
+        }
+        self.connected_addr = None;
+        self.telemetry = SankakuTelemetry::default();
+        self.frames_sent = 0;
     }
 
     fn local_receiver_port(&self) -> u16 {
@@ -104,7 +134,33 @@ impl MediaProvider for RealDuplexSession {
     }
 
     fn poll_frame(&mut self) -> Option<slint::Image> {
-        // TODO: decode inbound H.265 from Sankaku when transport is wired
+        if self.stream_handle.is_null() {
+            return Some(slint::Image::from_rgb8(self.remote_frame_buffer.clone()));
+        }
+
+        let mut inbound: *mut sankaku_ffi::SankakuInboundFrame = std::ptr::null_mut();
+        let rc = unsafe {
+            sankaku_ffi::sankaku_stream_poll_frame(self.stream_handle, &mut inbound)
+        };
+        if rc == 0 && !inbound.is_null() {
+            let frame = unsafe { &*inbound };
+            let data_len = frame.len;
+            if data_len > 0 && !frame.data.is_null() {
+                let src = unsafe { std::slice::from_raw_parts(frame.data, data_len) };
+                let buf_size =
+                    (self.remote_frame_buffer.width() * self.remote_frame_buffer.height() * 3)
+                        as usize;
+                let copy_len = data_len.min(buf_size);
+                let dest = self.remote_frame_buffer.make_mut_slice();
+                let dest_bytes = unsafe {
+                    std::slice::from_raw_parts_mut(dest.as_mut_ptr() as *mut u8, buf_size)
+                };
+                dest_bytes[..copy_len].copy_from_slice(&src[..copy_len]);
+            }
+            self.telemetry.rx_stats.packet_loss_ratio = frame.packet_loss_ratio;
+            unsafe { sankaku_ffi::sankaku_frame_free(inbound) };
+        }
+
         Some(slint::Image::from_rgb8(self.remote_frame_buffer.clone()))
     }
 
@@ -126,7 +182,6 @@ impl MediaProvider for RealDuplexSession {
                 }
                 let dest = self.local_preview_buffer.make_mut_slice();
                 let src = &frame.data[..expected_len];
-                // RGB8 bytes map directly to Rgb8Pixel layout
                 let dest_bytes = unsafe {
                     std::slice::from_raw_parts_mut(
                         dest.as_mut_ptr() as *mut u8,
@@ -171,12 +226,33 @@ impl MediaProvider for RealDuplexSession {
     }
 
     fn broadcast_frame(&mut self, frame: VideoFrame) {
-        if self.connected_addr.is_some() && frame.codec == VIDEO_CODEC_HEVC {
-            log::trace!(
-                "broadcast H.265 frame: {}B keyframe={}",
-                frame.payload.len(),
-                frame.keyframe
-            );
+        if self.stream_handle.is_null() || self.connected_addr.is_none() {
+            return;
+        }
+        if frame.codec != VIDEO_CODEC_HEVC {
+            return;
+        }
+
+        let c_frame = SankakuVideoFrame {
+            data: frame.payload.as_ptr(),
+            len: frame.payload.len(),
+            pts_us: frame.timestamp_us,
+            dts_us: frame.timestamp_us,
+            codec: frame.codec,
+            kind: if frame.keyframe {
+                SankakuFrameKind::Keyframe
+            } else {
+                SankakuFrameKind::Delta
+            },
+            flags: if frame.keyframe {
+                SANKAKU_FRAME_FLAG_KEYFRAME
+            } else {
+                0
+            },
+        };
+        let rc = unsafe { sankaku_ffi::sankaku_stream_send_frame(self.stream_handle, &c_frame) };
+        if rc != 0 {
+            log::warn!("sankaku_stream_send_frame returned {rc}");
         }
     }
 
@@ -218,6 +294,7 @@ struct MockDuplexSession {
     remote_phase: u32,
     telemetry: SankakuTelemetry,
     rng_state: u64,
+    stream_handle: *mut SankakuStreamHandle,
 }
 
 fn bind_receiver_socket() -> UdpSocket {
@@ -286,6 +363,7 @@ impl MockDuplexSession {
             remote_phase: 0,
             telemetry: SankakuTelemetry::default(),
             rng_state: 0x5A17_2D3C_4B91_08EF,
+            stream_handle: std::ptr::null_mut(),
         };
         session.render_local_frame();
         session.render_remote_frame();
@@ -442,11 +520,35 @@ impl MediaProvider for MockDuplexSession {
             return Err("address cannot be empty".to_owned());
         }
 
+        self.disconnect();
+
+        let port = self.local_receiver_port();
+        let quic_handle = SankakuQuicHandle {
+            kind: SankakuQuicHandleKind::Endpoint,
+            handle: port as u64,
+        };
+        let handle = unsafe { sankaku_ffi::sankaku_stream_create(quic_handle) };
+        if handle.is_null() {
+            return Err("sankaku_stream_create returned null".to_owned());
+        }
+        self.stream_handle = handle;
+
         self.connected_addr = Some(trimmed.to_owned());
         self.rng_state ^= trimmed.bytes().fold(0u64, |hash, byte| {
             hash.wrapping_mul(16777619) ^ u64::from(byte)
         });
+        log::info!("MockDuplexSession connected to {trimmed} (stream handle acquired)");
         Ok(())
+    }
+
+    fn disconnect(&mut self) {
+        if !self.stream_handle.is_null() {
+            unsafe { sankaku_ffi::sankaku_stream_destroy(self.stream_handle) };
+            self.stream_handle = std::ptr::null_mut();
+            log::info!("MockDuplexSession Sankaku stream destroyed");
+        }
+        self.connected_addr = None;
+        self.telemetry = SankakuTelemetry::default();
     }
 
     fn local_receiver_port(&self) -> u16 {
@@ -457,12 +559,37 @@ impl MediaProvider for MockDuplexSession {
     }
 
     fn poll_frame(&mut self) -> Option<slint::Image> {
-        self.render_remote_frame();
+        if !self.stream_handle.is_null() {
+            let mut inbound: *mut sankaku_ffi::SankakuInboundFrame = std::ptr::null_mut();
+            let rc = unsafe {
+                sankaku_ffi::sankaku_stream_poll_frame(self.stream_handle, &mut inbound)
+            };
+            if rc == 0 && !inbound.is_null() {
+                let frame = unsafe { &*inbound };
+                let data_len = frame.len;
+                if data_len > 0 && !frame.data.is_null() {
+                    let src = unsafe { std::slice::from_raw_parts(frame.data, data_len) };
+                    let buf_size = (self.remote_frame_buffer.width()
+                        * self.remote_frame_buffer.height()
+                        * 3) as usize;
+                    let copy_len = data_len.min(buf_size);
+                    let dest = self.remote_frame_buffer.make_mut_slice();
+                    let dest_bytes = unsafe {
+                        std::slice::from_raw_parts_mut(dest.as_mut_ptr() as *mut u8, buf_size)
+                    };
+                    dest_bytes[..copy_len].copy_from_slice(&src[..copy_len]);
+                }
+                self.telemetry.rx_stats.packet_loss_ratio = frame.packet_loss_ratio;
+                unsafe { sankaku_ffi::sankaku_frame_free(inbound) };
+            }
+        } else {
+            self.render_remote_frame();
+        }
 
         self.telemetry.rx_stats = if self.connected_addr.is_some() {
             SankakuStreamStats {
                 bitrate_bps: self.range_u32(1_350_000, 2_250_000),
-                packet_loss_ratio: self.range_f32(0.0010, 0.0140),
+                packet_loss_ratio: self.telemetry.rx_stats.packet_loss_ratio,
                 jitter_us: self.range_u32(5_000, 22_000),
                 latency_ms: self.range_u32(28, 96),
                 width: self.remote_frame_buffer.width(),
@@ -510,23 +637,49 @@ impl MediaProvider for MockDuplexSession {
     }
 
     fn broadcast_frame(&mut self, frame: VideoFrame) {
-        if self.connected_addr.is_some() && frame.codec == VIDEO_CODEC_HEVC {
-            self.telemetry.tx_stats = SankakuStreamStats {
-                bitrate_bps: self.range_u32(1_550_000, 2_550_000),
-                packet_loss_ratio: self.range_f32(0.0005, 0.0090),
-                jitter_us: self.range_u32(2_000, 8_000),
-                latency_ms: 0,
-                width: frame.width,
-                height: frame.height,
-            };
-            self.telemetry.udp_tx_dropped = self
-                .telemetry
-                .udp_tx_dropped
-                .saturating_add(u64::from(self.range_u32(0, 2)));
-        } else {
+        if self.connected_addr.is_none() || frame.codec != VIDEO_CODEC_HEVC {
             self.telemetry.tx_stats = SankakuStreamStats::default();
             self.telemetry.udp_tx_dropped = 0;
+            return;
         }
+
+        if !self.stream_handle.is_null() {
+            let c_frame = SankakuVideoFrame {
+                data: frame.payload.as_ptr(),
+                len: frame.payload.len(),
+                pts_us: frame.timestamp_us,
+                dts_us: frame.timestamp_us,
+                codec: frame.codec,
+                kind: if frame.keyframe {
+                    SankakuFrameKind::Keyframe
+                } else {
+                    SankakuFrameKind::Delta
+                },
+                flags: if frame.keyframe {
+                    SANKAKU_FRAME_FLAG_KEYFRAME
+                } else {
+                    0
+                },
+            };
+            let rc =
+                unsafe { sankaku_ffi::sankaku_stream_send_frame(self.stream_handle, &c_frame) };
+            if rc != 0 {
+                log::warn!("sankaku_stream_send_frame returned {rc}");
+            }
+        }
+
+        self.telemetry.tx_stats = SankakuStreamStats {
+            bitrate_bps: self.range_u32(1_550_000, 2_550_000),
+            packet_loss_ratio: self.range_f32(0.0005, 0.0090),
+            jitter_us: self.range_u32(2_000, 8_000),
+            latency_ms: 0,
+            width: frame.width,
+            height: frame.height,
+        };
+        self.telemetry.udp_tx_dropped = self
+            .telemetry
+            .udp_tx_dropped
+            .saturating_add(u64::from(self.range_u32(0, 2)));
     }
 
     fn get_telemetry(&self) -> SankakuTelemetry {
@@ -600,6 +753,17 @@ impl SessionManager {
         self.receiver_loop.accepted_peer = Some(peer.addr);
         self.connected_peer = Some(peer);
         Ok(())
+    }
+
+    fn disconnect_peer(&mut self) {
+        self.media_provider.disconnect();
+        self.connected_peer = None;
+        self.sender_loop.target_peer = None;
+        self.receiver_loop.accepted_peer = None;
+    }
+
+    fn is_connected(&self) -> bool {
+        self.connected_peer.is_some()
     }
 
     fn poll_remote_frame(&mut self) -> Option<slint::Image> {
@@ -755,8 +919,21 @@ fn main() -> Result<(), slint::PlatformError> {
 
         let mut session = connect_session.borrow_mut();
         if session.connect_peer(peer.clone()).is_ok() {
+            window.set_is_connected(true);
             apply_telemetry(&window, session.telemetry());
         }
+    });
+
+    let disconnect_session = Rc::clone(&session_manager);
+    let disconnect_window = main_window.as_weak();
+    main_window.on_disconnect_requested(move || {
+        let Some(window) = disconnect_window.upgrade() else {
+            return;
+        };
+        let mut session = disconnect_session.borrow_mut();
+        session.disconnect_peer();
+        window.set_is_connected(false);
+        apply_telemetry(&window, session.telemetry());
     });
 
     let audio_session = Rc::clone(&session_manager);
