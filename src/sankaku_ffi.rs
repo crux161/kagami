@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
 use std::ptr;
 
 pub const VIDEO_CODEC_HEVC: u8 = 0x01;
@@ -112,7 +113,7 @@ pub struct SankakuInboundFrame {
     pub packet_loss_ratio: f32,
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 unsafe extern "C" {
     pub fn init();
     pub fn sankaku_stream_create(quic_handle: SankakuQuicHandle) -> *mut SankakuStreamHandle;
@@ -128,18 +129,18 @@ unsafe extern "C" {
     pub fn sankaku_frame_free(frame: *mut SankakuInboundFrame);
 }
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
 pub unsafe fn init() {}
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
 pub unsafe fn sankaku_stream_create(_quic_handle: SankakuQuicHandle) -> *mut SankakuStreamHandle {
     ptr::null_mut()
 }
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
 pub unsafe fn sankaku_stream_destroy(_handle: *mut SankakuStreamHandle) {}
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
 pub unsafe fn sankaku_stream_send_frame(
     _handle: *mut SankakuStreamHandle,
     _frame: *const SankakuVideoFrame,
@@ -147,7 +148,7 @@ pub unsafe fn sankaku_stream_send_frame(
     -1
 }
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
 pub unsafe fn sankaku_stream_poll_frame(
     _handle: *mut SankakuStreamHandle,
     out_frame: *mut *mut SankakuInboundFrame,
@@ -160,5 +161,5 @@ pub unsafe fn sankaku_stream_poll_frame(
     -1
 }
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
 pub unsafe fn sankaku_frame_free(_frame: *mut SankakuInboundFrame) {}

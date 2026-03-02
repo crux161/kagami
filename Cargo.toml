@@ -3,11 +3,21 @@ name = "kagami"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+log = "0.4"
+env_logger = "0.11"
 mdns-sd = "=0.18.1"
 slint = "=1.15.1"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-foundation = "0.3"
+objc2-av-foundation = "0.3"
+objc2-core-media = "0.3"
+objc2-core-video = "0.3"
+objc2-video-toolbox = "0.3"
+block2 = "0.6"
+dispatch2 = "0.3"
 
 [build-dependencies]
 slint-build = "=1.15.1"

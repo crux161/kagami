@@ -1,4 +1,5 @@
 mod discovery;
+mod nezumi;
 mod nezumi_ffi;
 mod sankaku_ffi;
 
@@ -9,6 +10,7 @@ use std::rc::Rc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use discovery::{DiscoveryManager, Peer};
+use nezumi::NezumiProducer;
 use sankaku_ffi::{SankakuStreamStats, SankakuTelemetry, VideoFrame, VIDEO_CODEC_HEVC};
 
 slint::include_modules!();
@@ -25,6 +27,173 @@ trait MediaProvider {
     fn get_telemetry(&self) -> SankakuTelemetry;
     fn set_audio_muted(&mut self, muted: bool);
     fn set_video_enabled(&mut self, enabled: bool);
+}
+
+// ---------------------------------------------------------------------------
+// RealDuplexSession — backed by a NezumiProducer (AVFoundation on macOS)
+// ---------------------------------------------------------------------------
+
+#[allow(dead_code)]
+struct RealDuplexSession {
+    producer: Box<dyn nezumi::NezumiProducer>,
+    connected_addr: Option<String>,
+    audio_muted: bool,
+    video_enabled: bool,
+    receiver_socket: UdpSocket,
+    local_preview_buffer: slint::SharedPixelBuffer<slint::Rgb8Pixel>,
+    remote_frame_buffer: slint::SharedPixelBuffer<slint::Rgb8Pixel>,
+    telemetry: SankakuTelemetry,
+    capture_width: u32,
+    capture_height: u32,
+    frames_sent: u64,
+}
+
+#[allow(dead_code)]
+impl RealDuplexSession {
+    fn new(producer: Box<dyn nezumi::NezumiProducer>, width: u32, height: u32) -> Self {
+        Self {
+            producer,
+            connected_addr: None,
+            audio_muted: false,
+            video_enabled: true,
+            receiver_socket: bind_receiver_socket(),
+            local_preview_buffer: slint::SharedPixelBuffer::<slint::Rgb8Pixel>::new(width, height),
+            remote_frame_buffer: slint::SharedPixelBuffer::<slint::Rgb8Pixel>::new(1280, 720),
+            telemetry: SankakuTelemetry::default(),
+            capture_width: width,
+            capture_height: height,
+            frames_sent: 0,
+        }
+    }
+
+    fn timestamp_us() -> u64 {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_micros() as u64
+    }
+
+    fn render_disabled_preview(&mut self) {
+        let pixels = self.local_preview_buffer.make_mut_slice();
+        for pixel in pixels {
+            *pixel = slint::Rgb8Pixel {
+                r: 18,
+                g: 18,
+                b: 24,
+            };
+        }
+    }
+}
+
+impl MediaProvider for RealDuplexSession {
+    fn connect(&mut self, addr: &str) -> Result<(), String> {
+        let trimmed = addr.trim();
+        if trimmed.is_empty() {
+            return Err("address cannot be empty".to_owned());
+        }
+        self.connected_addr = Some(trimmed.to_owned());
+        log::info!("RealDuplexSession connected to {trimmed}");
+        Ok(())
+    }
+
+    fn local_receiver_port(&self) -> u16 {
+        self.receiver_socket
+            .local_addr()
+            .expect("receiver socket should expose a local address")
+            .port()
+    }
+
+    fn poll_frame(&mut self) -> Option<slint::Image> {
+        // TODO: decode inbound H.265 from Sankaku when transport is wired
+        Some(slint::Image::from_rgb8(self.remote_frame_buffer.clone()))
+    }
+
+    fn poll_local_preview(&mut self) -> Option<slint::Image> {
+        if !self.video_enabled {
+            return Some(slint::Image::from_rgb8(self.local_preview_buffer.clone()));
+        }
+        if let Some(frame) = self.producer.next_preview_frame() {
+            let expected_len = (frame.width * frame.height * 3) as usize;
+            if frame.data.len() >= expected_len {
+                if frame.width != self.local_preview_buffer.width()
+                    || frame.height != self.local_preview_buffer.height()
+                {
+                    self.local_preview_buffer =
+                        slint::SharedPixelBuffer::<slint::Rgb8Pixel>::new(
+                            frame.width,
+                            frame.height,
+                        );
+                }
+                let dest = self.local_preview_buffer.make_mut_slice();
+                let src = &frame.data[..expected_len];
+                // RGB8 bytes map directly to Rgb8Pixel layout
+                let dest_bytes = unsafe {
+                    std::slice::from_raw_parts_mut(
+                        dest.as_mut_ptr() as *mut u8,
+                        expected_len,
+                    )
+                };
+                dest_bytes.copy_from_slice(src);
+            }
+        }
+        Some(slint::Image::from_rgb8(self.local_preview_buffer.clone()))
+    }
+
+    fn capture_local_frame(&mut self) -> Option<VideoFrame> {
+        if !self.video_enabled {
+            self.telemetry.tx_stats = SankakuStreamStats::default();
+            self.telemetry.udp_tx_dropped = 0;
+            self.render_disabled_preview();
+            return None;
+        }
+
+        let packet = self.producer.next_packet()?;
+        self.frames_sent += 1;
+
+        self.telemetry.tx_stats = SankakuStreamStats {
+            bitrate_bps: (packet.data.len() as u32) * 8 * 30,
+            packet_loss_ratio: 0.0,
+            jitter_us: 0,
+            latency_ms: 0,
+            width: packet.width,
+            height: packet.height,
+        };
+
+        Some(
+            VideoFrame::nal_with_codec(
+                packet.data,
+                packet.timestamp_us,
+                packet.keyframe,
+                VIDEO_CODEC_HEVC,
+            )
+            .with_dimensions(packet.width, packet.height),
+        )
+    }
+
+    fn broadcast_frame(&mut self, frame: VideoFrame) {
+        if self.connected_addr.is_some() && frame.codec == VIDEO_CODEC_HEVC {
+            log::trace!(
+                "broadcast H.265 frame: {}B keyframe={}",
+                frame.payload.len(),
+                frame.keyframe
+            );
+        }
+    }
+
+    fn get_telemetry(&self) -> SankakuTelemetry {
+        self.telemetry
+    }
+
+    fn set_audio_muted(&mut self, muted: bool) {
+        self.audio_muted = muted;
+    }
+
+    fn set_video_enabled(&mut self, enabled: bool) {
+        self.video_enabled = enabled;
+        if !enabled {
+            self.render_disabled_preview();
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -505,16 +674,45 @@ fn apply_telemetry(window: &MainWindow, telemetry: SankakuTelemetry) {
     window.set_udp_tx_dropped(telemetry.udp_tx_dropped.to_string().into());
 }
 
+fn create_media_provider() -> Box<dyn MediaProvider> {
+    #[cfg(target_os = "macos")]
+    {
+        const CAPTURE_W: u32 = 1280;
+        const CAPTURE_H: u32 = 720;
+
+        match nezumi::avfoundation::AvFoundationProducer::new(CAPTURE_W, CAPTURE_H) {
+            Ok(mut producer) => {
+                if let Err(e) = producer.start_reading() {
+                    log::warn!("AVFoundation start_reading failed: {e} — falling back to mock");
+                    return Box::new(MockDuplexSession::new());
+                }
+                log::info!("using AVFoundation capture at {CAPTURE_W}x{CAPTURE_H}");
+                return Box::new(RealDuplexSession::new(
+                    Box::new(producer),
+                    CAPTURE_W,
+                    CAPTURE_H,
+                ));
+            }
+            Err(e) => {
+                log::warn!("AVFoundation init failed: {e} — falling back to mock");
+            }
+        }
+    }
+    Box::new(MockDuplexSession::new())
+}
+
 fn main() -> Result<(), slint::PlatformError> {
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+
     unsafe {
         sankaku_ffi::init();
         nezumi_ffi::init();
     }
 
     let main_window = MainWindow::new()?;
-    let session_manager = Rc::new(RefCell::new(SessionManager::new(Box::new(
-        MockDuplexSession::new(),
-    ))));
+    let session_manager = Rc::new(RefCell::new(SessionManager::new(
+        create_media_provider(),
+    )));
     let peer_cache = Rc::new(RefCell::new(Vec::<Peer>::new()));
     let peer_model = Rc::new(slint::VecModel::<slint::SharedString>::default());
     main_window.set_discovered_peers(peer_model.clone().into());
