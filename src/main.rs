@@ -841,6 +841,8 @@ fn apply_telemetry(window: &MainWindow, telemetry: SankakuTelemetry) {
 fn create_media_provider() -> Box<dyn MediaProvider> {
     #[cfg(target_os = "macos")]
     {
+        use crate::nezumi::NezumiProducer as _;
+
         const CAPTURE_W: u32 = 1280;
         const CAPTURE_H: u32 = 720;
 

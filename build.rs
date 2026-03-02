@@ -46,39 +46,29 @@ fn main() {
         println!("cargo:rerun-if-changed={}", nezumi_dll.display());
     } else if target_os == "macos" {
         let sankaku_dir = manifest_dir.join("dependencies").join("sankaku");
-        let nezumi_dir = manifest_dir.join("dependencies").join("nezumi");
 
         let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
-        let (sankaku_dylib_name, nezumi_dylib_name) = match target_arch.as_str() {
-            "x86_64" => ("libsankaku_x86_64.dylib", "libnezumi_x86_64.dylib"),
-            "aarch64" => ("libsankaku_arm64.dylib", "libnezumi_arm64.dylib"),
-            _ => ("libsankaku_universal.dylib", "libnezumi_universal.dylib"),
+        let sankaku_dylib_name = match target_arch.as_str() {
+            "x86_64" => "libsankaku_x86_64.dylib",
+            "aarch64" => "libsankaku_arm64.dylib",
+            _ => "libsankaku_universal.dylib",
         };
-
-        let sankaku_dylib = sankaku_dir.join(sankaku_dylib_name);
-        let nezumi_dylib = nezumi_dir.join(nezumi_dylib_name);
-
-        if !sankaku_dylib.exists() || !nezumi_dylib.exists() {
-            let sankaku_dylib = sankaku_dir.join("libsankaku_universal.dylib");
-            let nezumi_dylib = nezumi_dir.join("libnezumi_universal.dylib");
-            ensure_exists(&sankaku_dylib);
-            ensure_exists(&nezumi_dylib);
-        }
+        let sankaku_dylib = dylib_with_universal_fallback(
+            &sankaku_dir,
+            sankaku_dylib_name,
+            "libsankaku_universal.dylib",
+        );
 
         let staging = out_dir.join("macos_dylibs");
         fs::create_dir_all(&staging).expect("failed to create dylib staging dir");
         fs::copy(&sankaku_dylib, staging.join("libsankaku.dylib"))
             .expect("failed to stage sankaku dylib");
-        fs::copy(&nezumi_dylib, staging.join("libnezumi.dylib"))
-            .expect("failed to stage nezumi dylib");
 
         println!("cargo:rustc-link-search=native={}", staging.display());
         println!("cargo:rustc-link-lib=dylib=sankaku");
-        println!("cargo:rustc-link-lib=dylib=nezumi");
 
         println!("cargo:rustc-link-arg=-Wl,-rpath,@executable_path");
         println!("cargo:rustc-link-arg=-Wl,-rpath,@executable_path/../dependencies/sankaku");
-        println!("cargo:rustc-link-arg=-Wl,-rpath,@executable_path/../dependencies/nezumi");
 
         println!("cargo:rustc-link-lib=framework=AVFoundation");
         println!("cargo:rustc-link-lib=framework=CoreMedia");
@@ -87,16 +77,9 @@ fn main() {
         println!("cargo:rustc-link-lib=framework=CoreFoundation");
 
         let profile_dir = profile_output_dir(&out_dir, &profile);
-        deploy_runtime_dependencies(
-            &profile_dir,
-            &[
-                (&sankaku_dylib, "libsankaku.dylib"),
-                (&nezumi_dylib, "libnezumi.dylib"),
-            ],
-        );
+        deploy_runtime_dependencies(&profile_dir, &[(&sankaku_dylib, "libsankaku.dylib")]);
 
         println!("cargo:rerun-if-changed={}", sankaku_dylib.display());
-        println!("cargo:rerun-if-changed={}", nezumi_dylib.display());
     }
 
     println!(
@@ -111,6 +94,17 @@ fn ensure_exists(path: &Path) {
     if !path.exists() {
         panic!("required artifact is missing: {}", path.display());
     }
+}
+
+fn dylib_with_universal_fallback(dir: &Path, arch_name: &str, universal_name: &str) -> PathBuf {
+    let arch_specific = dir.join(arch_name);
+    if arch_specific.exists() {
+        return arch_specific;
+    }
+
+    let universal = dir.join(universal_name);
+    ensure_exists(&universal);
+    universal
 }
 
 fn profile_output_dir(out_dir: &Path, profile: &str) -> PathBuf {
